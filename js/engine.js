@@ -308,12 +308,8 @@ export function fmtHand(h) {
   return RES.filter((r) => h[r]).map((r) => `${RES_ICON[r]}×${h[r]}`).join(' ');
 }
 
-function stealRandom(s, thief, victim) {
-  const h = s.players[victim].resources;
-  const cards = RES.flatMap((r) => Array(h[r]).fill(r));
-  if (!cards.length) return;
-  const r = cards[rand(cards.length)];
-  h[r]--;
+function steal(s, thief, victim, r) {
+  s.players[victim].resources[r]--;
   s.players[thief].resources[r]++;
   log(s, `🦹 ${nm(s, thief)} 從 ${nm(s, victim)} 搶走 1 張資源卡`);
 }
@@ -326,11 +322,8 @@ function afterRobberMoved(s, pid) {
     if (b && b.owner !== pid && handTotal(s.players[b.owner].resources) > 0) victims.add(b.owner);
   }
   const list = [...victims];
-  if (list.length === 0) s.pending = null;
-  else if (list.length === 1) {
-    stealRandom(s, pid, list[0]);
-    s.pending = null;
-  } else s.pending = { type: 'steal', candidates: list };
+  // 強盜一律自己選擇對象與資源（即使只有一位可搶）
+  s.pending = list.length ? { type: 'steal', candidates: list } : null;
 }
 
 function validHand(h) {
@@ -521,7 +514,9 @@ export function applyAction(s, pid, a) {
       requireTurn();
       if (!s.pending || s.pending.type !== 'steal') fail('現在不能搶奪');
       if (!s.pending.candidates.includes(a.target)) fail('無效的目標');
-      stealRandom(s, pid, a.target);
+      if (!RES.includes(a.resource)) fail('請選擇要搶奪的資源');
+      if (!(s.players[a.target].resources[a.resource] > 0)) fail('對方沒有這種資源');
+      steal(s, pid, a.target, a.resource);
       s.pending = null;
       break;
     }
@@ -695,5 +690,9 @@ export function viewFor(s, viewer) {
       p.dev = null;
     }
   });
+  // 搶奪時，強盜可以看到可搶對象的手牌
+  if (s.pending?.type === 'steal' && viewer === s.current) {
+    v.pending.hands = Object.fromEntries(s.pending.candidates.map((i) => [i, { ...s.players[i].resources }]));
+  }
   return v;
 }

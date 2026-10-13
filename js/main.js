@@ -326,7 +326,9 @@ function autoplay() {
       } else if (p?.type === 'robber') {
         applyAction(s, cur, { type: 'moveRobber', hex: pick(geo(s).hexes.map((h) => h.id).filter((h) => h !== s.board.robber)) });
       } else if (p?.type === 'steal') {
-        applyAction(s, cur, { type: 'steal', target: pick(p.candidates) });
+        const target = pick(p.candidates);
+        const resource = pick(RES.filter((r) => s.players[target].resources[r] > 0));
+        applyAction(s, cur, { type: 'steal', target, resource });
       } else if (p?.type === 'roadBuilding') {
         applyAction(s, cur, { type: 'skipRoadBuilding' });
       } else if (!s.rolled) {

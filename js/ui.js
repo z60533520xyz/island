@@ -203,7 +203,7 @@ function hintText(s, t) {
     return `等待玩家棄牌：${Object.keys(p.need).map((i) => nameOf(+i)).join('、')}`;
   }
   if (p?.type === 'robber') return mine ? '🦹 點選一個地塊放置強盜' : `等待 ${nameOf(cur)} 移動強盜…`;
-  if (p?.type === 'steal') return mine ? '選擇要搶奪的玩家' : `等待 ${nameOf(cur)} 選擇搶奪對象…`;
+  if (p?.type === 'steal') return mine ? '選擇要搶奪的玩家與資源' : `等待 ${nameOf(cur)} 選擇搶奪對象…`;
   if (p?.type === 'roadBuilding') return mine ? `🛠️ 道路建設：點選位置建造道路（剩 ${p.remaining} 條）` : `${nameOf(cur)} 正在使用道路建設…`;
   if (!mine) return `等待 ${nameOf(cur)} 的回合…`;
   if (!s.rolled) return '🎲 你的回合！擲骰子開始（也可以先使用騎士卡）';
@@ -413,8 +413,13 @@ function modalContent(s) {
       <div class="steppers">${rows}</div><div class="btnrow"><button class="primary" data-act="confirmDiscard" ${total === need ? '' : 'disabled'}>確定棄牌</button></div>` };
   }
   if (s.pending?.type === 'steal' && s.current === me) {
-    const btns = s.pending.candidates.map((i) => `<button data-act="steal" data-target="${i}">${nameOf(i)}（${s.players[i].handCount} 張）</button>`).join('');
-    return { key: 'steal', html: `<h2>🦹 搶奪</h2><p>選擇要搶奪一張資源卡的對象：</p><div class="btncol">${btns}</div>` };
+    const hands = s.pending.hands || {};
+    const rows = s.pending.candidates.map((i) => {
+      const h = hands[i] || emptyHand();
+      const picks = RES.map((r) => `<button class="pick" data-act="steal" data-target="${i}" data-res="${r}" ${h[r] > 0 ? '' : 'disabled'} title="${RES_NAME[r]}">${RES_ICON[r]}<small>${h[r]}</small></button>`).join('');
+      return `<div class="steal-row"><div>${nameOf(i)} <span class="muted">（${s.players[i].handCount} 張）</span></div><div class="picks">${picks}</div></div>`;
+    }).join('');
+    return { key: 'steal', html: `<h2>🦹 搶奪</h2><p>選擇對象，點一種資源搶走 1 張：</p>${rows}` };
   }
 
   const m = app.modal;
@@ -531,7 +536,7 @@ const ACTIONS = {
     app.dispatch({ type: 'playDev', card: 'monopoly', resource: el.dataset.res });
     closeModal();
   },
-  steal: (el) => app.dispatch({ type: 'steal', target: Number(el.dataset.target) }),
+  steal: (el) => app.dispatch({ type: 'steal', target: Number(el.dataset.target), resource: el.dataset.res }),
   tradeRespond: (el) => app.dispatch({ type: 'tradeRespond', accept: el.dataset.accept === '1' }),
   tradeAccept: (el) => app.dispatch({ type: 'tradeAccept', with: Number(el.dataset.with) }),
   tradeCancel: () => app.dispatch({ type: 'tradeCancel' }),

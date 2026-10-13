@@ -59,7 +59,11 @@ function botStep(s) {
     const hexes = geo(s).hexes.map((h) => h.id).filter((h) => h !== s.board.robber);
     return applyAction(s, me, { type: 'moveRobber', hex: pick(hexes) });
   }
-  if (s.pending?.type === 'steal') return applyAction(s, me, { type: 'steal', target: pick(s.pending.candidates) });
+  if (s.pending?.type === 'steal') {
+    const target = pick(s.pending.candidates);
+    const resource = pick(RES.filter((r) => s.players[target].resources[r] > 0));
+    return applyAction(s, me, { type: 'steal', target, resource });
+  }
   if (s.pending?.type === 'roadBuilding') {
     return applyAction(s, me, { type: 'build', kind: 'road', at: pick(validRoadEdges(s, me)) });
   }
@@ -227,6 +231,33 @@ assert.equal(GEO.coastal.length, 30);
   assert.ok(seen.size > 1, '預設應會打亂順序');
   const fixed = createGame(names.map((name) => ({ name })), { shuffleSeats: false });
   assert.deepEqual(fixed.players.map((p) => p.seat), [0, 1, 2, 3]);
+}
+
+// ---- 強盜：自選對象與資源
+{
+  const s = createGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }], { shuffleSeats: false });
+  s.phase = 'play'; s.turn = 1; s.rolled = true;
+  const hex = 4;
+  const [v1] = geo(s).hexes[hex].vertices;
+  s.buildings[v1] = { owner: 1, type: 'settlement' };
+  s.players[1].resources.ore = 2; s.bank.ore -= 2;
+  s.players[1].resources.wood = 1; s.bank.wood -= 1;
+  s.board.robber = 0;
+  s.pending = { type: 'robber' };
+  applyAction(s, 0, { type: 'moveRobber', hex });
+  assert.equal(s.pending.type, 'steal', '只有一位可搶也要自己選');
+  assert.deepEqual(s.pending.candidates, [1]);
+  // 只有強盜看得到對方手牌
+  assert.equal(viewFor(s, 0).pending.hands[1].ore, 2);
+  assert.equal(viewFor(s, 2).pending.hands, undefined);
+  assert.equal(viewFor(s, 1).pending.hands, undefined);
+  expectThrow(() => applyAction(s, 0, { type: 'steal', target: 1, resource: 'wheat' }));
+  expectThrow(() => applyAction(s, 0, { type: 'steal', target: 1 }));
+  expectThrow(() => applyAction(s, 0, { type: 'steal', target: 2, resource: 'ore' }));
+  applyAction(s, 0, { type: 'steal', target: 1, resource: 'ore' });
+  assert.equal(s.players[1].resources.ore, 1);
+  assert.equal(s.players[0].resources.ore, 1);
+  assert.equal(s.pending, null);
 }
 
 // ---- 最長道路：被他人村莊截斷
