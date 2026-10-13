@@ -415,7 +415,7 @@ function nextTurn(s) {
 }
 
 // ---------------------------------------------------------------- 時事新聞
-// 取材自 2026 台北市長選戰期間廣泛報導、雙方都能一笑置之的話題；效果抽象化，不對任何人做事實陳述。
+// 取材自 2026 九合一選戰期間廣泛報導、各方都能一笑置之的話題；效果抽象化，不對任何人做事實陳述。
 // 「全體獲得資源」的事件五種資源各一張，機率平均。
 export const EVENTS = [
   { id: 'debate', title: '電視辯論會', desc: '每位候選人獲得 1 張📗文宣' },
@@ -428,6 +428,7 @@ export const EVENTS = [
   { id: 'viral', title: '街頭民調大逆轉', desc: '得票最低者獲得自己最少的兩種資源各 1 張' },
   { id: 'ghost', title: '政治獻金查帳', desc: '資源超過 7 張的候選人棄掉 2 張（從最多的資源開始）' },
   { id: 'clarify', title: '高格調選戰', desc: '雙方承諾不打身世牌：黑函回到艱困選區' },
+  { id: 'alliance', title: '雙城匯流', desc: '跨縣市連線造勢：每位候選人把 1 張自己最多的資源交給下一位' },
 ];
 
 const GAIN_EVENTS = { debate: 'wood', billboard: 'brick', market: 'sheep', rally: 'wheat', donation: 'ore' };
@@ -498,6 +499,12 @@ export function applyEvent(s, id) {
       }
       log(s, `${nm(s, pid)} 被查辦，棄掉 ${lost.join(' ')}`);
     });
+  } else if (id === 'alliance') {
+    // 先決定每人要傳的資源，再同時交換
+    const n = s.players.length;
+    const passes = s.players.map((p) => (handTotal(p.resources) ? mostRes(p.resources) : null));
+    passes.forEach((r, pid) => { if (r) s.players[pid].resources[r]--; });
+    passes.forEach((r, pid) => { if (r) s.players[(pid + 1) % n].resources[r]++; });
   } else if (id === 'clarify') {
     const desert = s.board.hexes.findIndex((h) => h.resource === 'desert');
     if (desert >= 0) s.board.robber = desert;

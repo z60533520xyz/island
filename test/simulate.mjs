@@ -460,6 +460,14 @@ assert.equal(GEO.coastal.length, 30);
   s = mk(); s.board.robber = s.board.hexes.findIndex((h) => h.resource !== 'desert');
   applyEvent(s, 'clarify');
   assert.equal(s.board.hexes[s.board.robber].resource, 'desert');
+  // 雙城匯流：每人把最多的資源傳給下一位
+  s = mk(); giveRes(s, 0, 'wood', 2); giveRes(s, 1, 'ore', 1);
+  applyEvent(s, 'alliance');
+  assert.equal(s.players[0].resources.wood, 1);
+  assert.equal(s.players[1].resources.wood, 1);
+  assert.equal(s.players[1].resources.ore, 0);
+  assert.equal(s.players[2].resources.ore, 1);
+  assert.equal(handTotal(s.players[2].resources), 1, '沒有資源的人不用傳');
   // 牌庫用完重洗
   s = mk(); s.eventDeck = [];
   restore = forceDice(5, 5); applyAction(s, 0, { type: 'roll' }); restore();
