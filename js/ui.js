@@ -305,6 +305,30 @@ function renderHand(s) {
     <h3>錦囊卡${s.devPlayed && mine ? ' <small>（本回合已使用）</small>' : ''}</h3><div class="dcards">${devHtml}</div>`;
 }
 
+// 建設成本速查表：隨時可看，並反映自己陣營的優惠
+function renderCosts(s) {
+  const el = $('#costs');
+  const me = app.me;
+  const items = [
+    ['road', '🚶 掃街路線', '連接據點；最長 ≥5 段 +2 票'],
+    ['settlement', '🏢 服務處', '1 票'],
+    ['city', '🏛️ 競選總部', '由服務處升級，2 票、產出加倍'],
+    ['dev', '📜 錦囊卡', '抽一張'],
+  ];
+  const rows = items.map(([kind, label, note]) => {
+    const cost = me != null && s.players[me] ? costFor(s, me, kind) : COST[kind];
+    const cheaper = cost !== COST[kind];
+    return `<tr><td>${label}</td><td class="cost-icons${cheaper ? ' cheaper' : ''}" title="${cheaper ? '陣營優惠' : ''}">${costHtml(cost)}</td><td class="muted">${note}</td></tr>`;
+  }).join('');
+  const html = `<summary>建設成本</summary><table>${rows}</table>`;
+  if (el.dataset.html !== html) {
+    el.dataset.html = html;
+    const open = el.open;
+    el.innerHTML = html;
+    el.open = open;
+  }
+}
+
 function costHtml(cost) {
   return RES.filter((r) => cost[r]).map((r) => `${RES_ICON[r]}${cost[r] > 1 ? `×${cost[r]}` : ''}`).join('');
 }
@@ -597,6 +621,7 @@ export function render() {
   renderTopbar(s);
   renderPlayers(s);
   renderHand(s);
+  renderCosts(s);
   renderActions(s);
   renderTrade(s);
   renderLog(s);

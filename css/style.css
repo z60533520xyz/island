@@ -177,6 +177,13 @@ input:focus { outline: 2px solid #e8b4ad; border-color: var(--accent); }
 .dcard .ddesc { grid-column: 1; font-size: 12px; color: var(--muted); }
 .dcard button { grid-row: 1 / span 2; grid-column: 2; }
 
+.costs summary { cursor: pointer; font-weight: 600; }
+.costs table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 13px; }
+.costs td { padding: 4px 2px; border-top: 1px dashed var(--line); vertical-align: middle; }
+.costs td:first-child { white-space: nowrap; font-weight: 600; }
+.costs .cost-icons { white-space: nowrap; font-size: 15px; letter-spacing: 1px; }
+.costs .cheaper { color: #1b9431; font-weight: 700; }
+.costs .cheaper::after { content: ' 優惠'; font-size: 11px; }
 .trade { border-color: #f0c96a; background: #fffaf0; }
 .offer { line-height: 1.7; }
 .offer-note { font-size: 12px; color: var(--muted); margin-top: 4px; }
