@@ -3,6 +3,7 @@ import {
   RES, RES_NAME, RES_ICON, DEV_NAME, DEV_DESC, COST, WIN_VP,
   canAfford, emptyHand, handTotal, victoryPoints, tradeRatios, playableDev, robberNearOwn,
   validRoadEdges, validSettlementVertices, validCityVertices, geo,
+  FACTIONS, factionOf, costFor, discardableCount,
 } from './engine.js';
 
 const S = 100; // 1 單位 = 100 SVG 像素
@@ -232,6 +233,16 @@ function renderTopbar(s) {
     <div class="bankinfo" title="公庫剩餘資源 / 錦囊卡">${RES.map((r) => `<span>${RES_ICON[r]}${s.bank[r]}</span>`).join('')}<span>📜${s.deckCount}</span></div>`;
 }
 
+function factionInfo(s, i) {
+  const id = factionOf(s, i);
+  return id ? FACTIONS.find((f) => f.id === id) : null;
+}
+
+function factionTag(s, i) {
+  const f = factionInfo(s, i);
+  return f ? `<span class="ftag" title="${esc(f.skill)}">${f.title}</span>` : '';
+}
+
 function renderPlayers(s) {
   const html = s.players.map((p, i) => {
     const vp = victoryPoints(s, i, i === app.me || s.phase === 'ended');
@@ -245,6 +256,7 @@ function renderPlayers(s) {
       <div class="prow">
         <span class="pdot"></span>
         <b class="pn">${esc(p.name)}${i === app.me ? '（你）' : ''}${builder ? ' 🔨' : ''}</b>
+        ${factionTag(s, i)}
         ${online ? '' : '<span class="offline" title="離線中">離線</span>'}
         <span class="vp" title="得票${i === app.me ? '（含隱藏的民調領先卡）' : ''}">🗳️ ${vp}</span>
       </div>
@@ -285,7 +297,9 @@ function renderHand(s) {
     }).join('')
     : '<div class="muted">尚無錦囊卡</div>';
 
-  $('#hand').innerHTML = `<h3>你的手牌 <small>${handTotal(P.resources)} 張</small></h3><div class="rcards">${cards}</div>
+  const f = factionInfo(s, app.me);
+  const skill = f ? `<div class="myskill" style="--c:${P.color}"><b>陣營「${f.title}」</b>${esc(f.skill)}</div>` : '';
+  $('#hand').innerHTML = `${skill}<h3>你的手牌 <small>${handTotal(P.resources)} 張</small></h3><div class="rcards">${cards}</div>
     <h3>錦囊卡${s.devPlayed && mine ? ' <small>（本回合已使用）</small>' : ''}</h3><div class="dcards">${devHtml}</div>`;
 }
 
@@ -301,7 +315,7 @@ function buildButtons(s, me, busy) {
   };
   const canDev = !busy && canAfford(P.resources, COST.dev) && s.deckCount > 0;
   return `<div class="btngrid">
-    ${btn('road', '🚶 掃街路線', COST.road, validRoadEdges(s, me).length)}
+    ${btn('road', '🚶 掃街路線', costFor(s, me, 'road'), validRoadEdges(s, me).length)}
     ${btn('settlement', '🏢 服務處', COST.settlement, validSettlementVertices(s, me).length)}
     ${btn('city', '🏛️ 競選總部', COST.city, validCityVertices(s, me).length)}
     <button data-act="buyDev" ${canDev ? '' : 'disabled'}>📜 錦囊卡<span class="cost">${costHtml(COST.dev)}</span></button>
@@ -417,7 +431,8 @@ function modalContent(s) {
     const need = s.pending.need[me];
     const sel = app.modalData.discard ||= emptyHand();
     const total = handTotal(sel);
-    const rows = RES.map((r) => stepper('discard', r, sel[r], Math.min(P.resources[r], sel[r] + need - total))).join('');
+    const keepOre = factionOf(s, me) === 'blue';
+    const rows = RES.map((r) => stepper('discard', r, sel[r], keepOre && r === 'ore' ? 0 : Math.min(P.resources[r], sel[r] + need - total))).join('');
     return { key: 'discard', html: `<h2>棄牌</h2><p>擲出 7，你的手牌超過 7 張，必須棄掉 <b>${need}</b> 張（已選 ${total}）。</p>
       <div class="steppers">${rows}</div><div class="btnrow"><button class="primary" data-act="confirmDiscard" ${total === need ? '' : 'disabled'}>確定棄牌</button></div>` };
   }
@@ -427,7 +442,8 @@ function modalContent(s) {
       const picks = RES.map((r) => `<button class="pick" data-act="steal" data-target="${i}" data-res="${r}" ${h[r] > 0 ? '' : 'disabled'} title="${RES_NAME[r]}">${RES_ICON[r]}<small>${h[r]}</small></button>`).join('');
       return `<div class="steal-row"><div>${nameOf(i)} <span class="muted">（${s.players[i].handCount} 張）</span></div><div class="picks">${picks}</div></div>`;
     }).join('');
-    return { key: 'steal', html: `<h2>🕵️ 挖角</h2><p>選擇對象，點一種資源挖走 1 張：</p>${rows}` };
+    const extra = s.pending.left ? '<p class="muted">🐦 青鳥出征：還可以再挖角 1 張</p>' : factionOf(s, me) === 'green' ? '<p class="muted">🐦 青鳥出征：這次可以挖角 2 張</p>' : '';
+    return { key: `steal${s.pending.left || ''}`, html: `<h2>🕵️ 挖角</h2><p>選擇對象，點一種資源挖走 1 張：</p>${extra}${rows}` };
   }
 
   const m = app.modal;

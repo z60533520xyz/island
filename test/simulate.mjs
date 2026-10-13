@@ -5,7 +5,7 @@ import { GEO, geoFor } from '../js/geometry.js';
 import {
   RES, COST, applyAction, createGame, canAfford, handTotal, tradeRatios, viewFor, victoryPoints,
   validRoadEdges, validSettlementVertices, validCityVertices, playableDev, longestRoadFor,
-  geo, bankSize, robberNearOwn,
+  geo, bankSize, robberNearOwn, costFor, tradeRatios as ratiosOf, discardableCount, FACTIONS,
 } from '../js/engine.js';
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -32,7 +32,7 @@ function botStep(s) {
     const h = { ...s.players[pid].resources };
     const d = { wood: 0, brick: 0, sheep: 0, wheat: 0, ore: 0 };
     for (let i = 0; i < need; i++) {
-      const r = pick(RES.filter((x) => h[x] > 0));
+      const r = pick(RES.filter((x) => h[x] > 0 && !(x === 'ore' && s.players[pid].faction === 'blue')));
       h[r]--; d[r]++;
     }
     return applyAction(s, +pid, { type: 'discard', resources: d });
@@ -83,7 +83,7 @@ function botStep(s) {
   const sett = validSettlementVertices(s, me);
   if (sett.length && canAfford(P.resources, COST.settlement)) return applyAction(s, me, { type: 'build', kind: 'settlement', at: pick(sett) });
   const roads = validRoadEdges(s, me);
-  if (roads.length && canAfford(P.resources, COST.road) && Math.random() < 0.7) return applyAction(s, me, { type: 'build', kind: 'road', at: pick(roads) });
+  if (roads.length && canAfford(P.resources, costFor(s, me, 'road')) && Math.random() < 0.7) return applyAction(s, me, { type: 'build', kind: 'road', at: pick(roads) });
   if (s.deck.length && canAfford(P.resources, COST.dev) && Math.random() < 0.5) return applyAction(s, me, { type: 'buyDev' });
 
   // 玩家交易：提案 → 隨機一人接受 → 成交
@@ -301,6 +301,86 @@ assert.equal(GEO.coastal.length, 30);
   applyAction(s, 0, { type: 'playDev', card: 'knight' });
   assert.equal(s.pending.type, 'robber');
   assert.equal(s.players[0].knights, 1);
+}
+
+// ---- 陣營技能
+{
+  const mk = (n = 6, opts = {}) => {
+    const s = createGame(Array.from({ length: n }, (_, i) => ({ name: `P${i}` })), { shuffleSeats: false, ...opts });
+    s.phase = 'play'; s.turn = 1; s.rolled = true;
+    return s;
+  };
+  const giveRes = (s, pid, r, n) => { s.players[pid].resources[r] += n; s.bank[r] -= n; };
+  const ids = FACTIONS.map((f) => f.id);
+  assert.deepEqual(mk().players.map((p) => p.faction), ids);
+  assert.ok(mk(3, { factions: false }).players.every((p) => p.faction === null), '關閉時沒有陣營');
+
+  // 藍 黑金：資金 2:1、棄牌不計資金
+  let s = mk();
+  assert.equal(ratiosOf(s, 0).ore, 2);
+  assert.equal(ratiosOf(s, 0).wood, 4);
+  giveRes(s, 0, 'ore', 6); giveRes(s, 0, 'wood', 4);
+  assert.equal(discardableCount(s, 0), 4, '資金不計入');
+  giveRes(s, 0, 'wood', 6); // 10 張文宣 + 6 資金 → 需棄 5
+  assert.equal(discardableCount(s, 0), 10);
+  s.pending = { type: 'discard', need: { 0: 5 } };
+  expectThrow(() => applyAction(s, 0, { type: 'discard', resources: { ore: 1, wood: 4 } }));
+  applyAction(s, 0, { type: 'discard', resources: { wood: 5 } });
+
+  // 橘 合縱連橫：全部 3:1
+  s = mk();
+  assert.deepEqual(Object.values(ratiosOf(s, 4)), [3, 3, 3, 3, 3]);
+
+  // 黃 社運：掃街路線只需文宣
+  s = mk();
+  assert.deepEqual(costFor(s, 3, 'road'), { wood: 1 });
+  assert.deepEqual(costFor(s, 0, 'road'), { wood: 1, brick: 1 });
+
+  // 紅 硬頸：黑函壓住也產出；其他人不產出
+  s = mk();
+  const hid = s.board.hexes.findIndex((h) => h.number && h.number !== 7);
+  const [va, , vc] = geo(s).hexes[hid].vertices;
+  s.buildings[va] = { owner: 5, type: 'settlement' };
+  s.buildings[vc] = { owner: 1, type: 'settlement' };
+  s.board.robber = hid;
+  s.rolled = false;
+  const realRandom = Math.random;
+  const n = s.board.hexes[hid].number;
+  const d1 = Math.max(1, n - 6);
+  const seq = [(d1 - 1) / 6 + 0.01, (n - d1 - 1) / 6 + 0.01];
+  Math.random = () => seq.shift() ?? realRandom();
+  s.current = 0;
+  applyAction(s, 0, { type: 'roll' });
+  Math.random = realRandom;
+  assert.equal(s.dice[0] + s.dice[1], n);
+  const res = s.board.hexes[hid].resource;
+  assert.ok(s.players[5].resources[res] >= 1, '硬頸照樣產出');
+  assert.equal(s.players[1].resources[res], 0, '其他人被黑函擋住');
+
+  // 青 小草：擲骰沒拿到資源 → 志工 +1
+  s = mk();
+  s.current = 2; s.rolled = false;
+  Math.random = (() => { const q = [0.01, 0.01]; return () => q.shift() ?? realRandom(); })(); // 擲出 1+1=2
+  applyAction(s, 2, { type: 'roll' });
+  Math.random = realRandom;
+  assert.equal(s.dice[0] + s.dice[1], 2);
+  assert.equal(s.players[2].resources.sheep, 1, '小額捐款');
+
+  // 綠 青鳥：挖角 2 張；其他陣營 1 張
+  s = mk();
+  s.current = 1;
+  giveRes(s, 3, 'wheat', 2);
+  s.pending = { type: 'steal', candidates: [3] };
+  applyAction(s, 1, { type: 'steal', target: 3, resource: 'wheat' });
+  assert.equal(s.pending?.type, 'steal', '青鳥可以再挖一張');
+  applyAction(s, 1, { type: 'steal', target: 3, resource: 'wheat' });
+  assert.equal(s.pending, null);
+  assert.equal(s.players[1].resources.wheat, 2);
+  s.current = 0;
+  giveRes(s, 3, 'wheat', 2);
+  s.pending = { type: 'steal', candidates: [3] };
+  applyAction(s, 0, { type: 'steal', target: 3, resource: 'wheat' });
+  assert.equal(s.pending, null, '非青鳥只挖一張');
 }
 
 // ---- 最長道路：被他人村莊截斷

@@ -22,6 +22,32 @@ export const COST = {
 export const COLORS = ['#1f4fb4', '#1b9431', '#1fb5b5', '#f5b800', '#ff6a13', '#a73f24'];
 export const MAX_PLAYERS = 6;
 
+// 陣營技能：依玩家顏色（順序）對應
+export const FACTIONS = [
+  { id: 'blue', color: '藍', title: '黑金', skill: '💰資金與公庫交易 2:1；黑函事件棄牌時資金不計入手牌（藏錢）' },
+  { id: 'green', color: '綠', title: '青鳥', skill: '出征：移動黑函時可以挖角 2 張' },
+  { id: 'teal', color: '青', title: '小草', skill: '小額捐款：自己擲骰後若沒拿到任何資源，從公庫獲得 1 張🙋志工' },
+  { id: 'yellow', color: '黃', title: '社運', skill: '掃街路線只需 📄文宣×1' },
+  { id: 'orange', color: '橘', title: '合縱連橫', skill: '所有資源與公庫交易 3:1' },
+  { id: 'red', color: '紅', title: '硬頸', skill: '黑函擋不住你：被黑函壓住的選區照樣產出給你' },
+];
+
+export function factionOf(s, pid) {
+  return s.players[pid]?.faction || null;
+}
+
+// 依陣營調整後的建造成本
+export function costFor(s, pid, kind) {
+  if (kind === 'road' && factionOf(s, pid) === 'yellow') return { wood: 1 };
+  return COST[kind];
+}
+
+// 黑函事件時計入棄牌的手牌數（黑金的資金不計入）
+export function discardableCount(s, pid) {
+  const h = s.players[pid].resources;
+  return handTotal(h) - (factionOf(s, pid) === 'blue' ? h.ore : 0);
+}
+
 export const WIN_VP = 10;
 
 export class GameError extends Error {}
@@ -59,7 +85,7 @@ function rand(n) {
 
 // ---------------------------------------------------------------- 建立遊戲
 
-export const DEFAULT_OPTIONS = { setupRoads: 1, specialBuild: true, shuffleSeats: true };
+export const DEFAULT_OPTIONS = { setupRoads: 1, specialBuild: true, shuffleSeats: true, factions: true };
 
 // 2~4 人用標準地圖，5~6 人用大地圖（較多資源與錦囊卡）
 const SETS = {
@@ -89,6 +115,7 @@ export function createGame(seats, opts = {}) {
   if (![1, 2].includes(options.setupRoads)) fail('起始掃街路線數只能是 1 或 2');
   options.specialBuild = !!options.specialBuild;
   options.shuffleSeats = !!options.shuffleSeats;
+  options.factions = !!options.factions;
   // 玩家順序（= 回合順序、顏色）；seat 記錄他在大廳的座位，讓房主對應連線
   const seatOrder = [...Array(n).keys()];
   if (options.shuffleSeats) shuffle(seatOrder);
@@ -105,6 +132,7 @@ export function createGame(seats, opts = {}) {
       name: seats[seatIdx].name,
       seat: seatIdx,
       color: COLORS[i],
+      faction: options.factions ? FACTIONS[i].id : null,
       resources: emptyHand(),
       dev: [],
       knights: 0,
@@ -130,6 +158,7 @@ export function createGame(seats, opts = {}) {
     seq: 0,
   };
   log(s, `${options.shuffleSeats ? '🎲 隨機決定順序' : '依座位順序'}：${s.players.map((p) => p.name).join(' → ')}`);
+  if (options.factions) log(s, `陣營：${s.players.map((p, i) => `${p.name}「${FACTIONS[i].title}」`).join('、')}`);
   log(s, `遊戲開始！${layout === 'large' ? '5~6 人大地圖。' : ''}每輪依序設立 1 間服務處 + ${options.setupRoads} 條掃街路線，共兩輪（第二輪順序相反）。`);
   return s;
 }
@@ -194,6 +223,9 @@ export function validRoadEdges(s, pid) {
 
 export function tradeRatios(s, pid) {
   const ratios = { wood: 4, brick: 4, sheep: 4, wheat: 4, ore: 4 };
+  const f = factionOf(s, pid);
+  if (f === 'orange') for (const r of RES) ratios[r] = 3;
+  if (f === 'blue') ratios.ore = 2;
   for (const port of s.board.ports) {
     const owned = geo(s).edges[port.edge].v.some((v) => s.buildings[v] && s.buildings[v].owner === pid);
     if (!owned) continue;
@@ -279,10 +311,12 @@ function produce(s, sum) {
   const demand = {};
   for (const r of RES) demand[r] = {};
   s.board.hexes.forEach((hex, hid) => {
-    if (hex.number !== sum || hid === s.board.robber) return;
+    if (hex.number !== sum) return;
+    const blocked = hid === s.board.robber;
     for (const v of geo(s).hexes[hid].vertices) {
       const b = s.buildings[v];
       if (!b) continue;
+      if (blocked && factionOf(s, b.owner) !== 'red') continue;
       const d = demand[hex.resource];
       d[b.owner] = (d[b.owner] || 0) + (b.type === 'city' ? 2 : 1);
     }
@@ -309,6 +343,14 @@ function produce(s, sum) {
     log(s, `${nm(s, pid)} 獲得 ${fmtHand(g)}`);
   });
   if (!any) log(s, '沒有人獲得資源');
+  return gains;
+}
+
+// 小草：自己擲骰後沒拿到資源，獲得 1 張志工
+function smallDonation(s, pid, gained) {
+  if (factionOf(s, pid) !== 'teal' || gained || s.bank.sheep < 1) return;
+  give(s, pid, 'sheep', 1);
+  log(s, `🌱 ${nm(s, pid)} 的小額捐款：獲得 🙋×1`);
 }
 
 export function fmtHand(h) {
@@ -452,7 +494,7 @@ export function applyAction(s, pid, a) {
       requireBuild();
       if (kind === 'road') {
         if (!validRoadEdges(s, pid).includes(a.at)) fail('這裡不能開闢掃街路線');
-        pay(s, pid, COST.road);
+        pay(s, pid, costFor(s, pid, 'road'));
         enterBuildPhase(s);
         s.roads[a.at] = pid;
         P.pieces.road--;
@@ -492,9 +534,10 @@ export function applyAction(s, pid, a) {
       if (sum === 7) {
         const need = {};
         s.players.forEach((p, i) => {
-          const t = handTotal(p.resources);
+          const t = discardableCount(s, i);
           if (t > 7) need[i] = Math.floor(t / 2);
         });
+        smallDonation(s, pid, false);
         if (Object.keys(need).length) {
           s.pending = { type: 'discard', need };
           log(s, `手牌超過 7 張的玩家須棄掉一半：${Object.entries(need).map(([i, n]) => `${nm(s, +i)}(${n})`).join('、')}`);
@@ -502,7 +545,8 @@ export function applyAction(s, pid, a) {
           s.pending = { type: 'robber' };
         }
       } else {
-        produce(s, sum);
+        const gains = produce(s, sum);
+        smallDonation(s, pid, handTotal(gains[pid]) > 0);
       }
       break;
     }
@@ -514,6 +558,7 @@ export function applyAction(s, pid, a) {
       if (!validHand(a.resources)) fail('無效的棄牌');
       const d = normHand(a.resources);
       if (handTotal(d) !== need) fail(`必須剛好棄 ${need} 張`);
+      if (factionOf(s, pid) === 'blue' && d.ore) fail('黑金的資金不計入棄牌，請棄其他資源');
       if (!canAfford(P.resources, d)) fail('資源不足');
       pay(s, pid, d);
       delete s.pending.need[pid];
@@ -542,7 +587,14 @@ export function applyAction(s, pid, a) {
       if (!RES.includes(a.resource)) fail('請選擇要挖角的資源');
       if (!(s.players[a.target].resources[a.resource] > 0)) fail('對方沒有這種資源');
       steal(s, pid, a.target, a.resource);
-      s.pending = null;
+      const left = (s.pending.left ?? (factionOf(s, pid) === 'green' ? 2 : 1)) - 1;
+      const still = s.pending.candidates.filter((i) => handTotal(s.players[i].resources) > 0);
+      if (left > 0 && still.length) {
+        s.pending = { type: 'steal', candidates: still, left };
+        log(s, `🐦 ${nm(s, pid)} 的青鳥出征：可以再挖角 1 張`);
+      } else {
+        s.pending = null;
+      }
       break;
     }
 

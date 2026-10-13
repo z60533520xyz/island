@@ -1,6 +1,6 @@
 // 應用程式主控：首頁 / 大廳 / 遊戲畫面切換，以及房主（權威端）與客戶端的訊息處理。
 import {
-  createGame, applyAction, DEFAULT_OPTIONS, MAX_PLAYERS, geo, viewFor, GameError, COLORS, RES, emptyHand,
+  createGame, applyAction, DEFAULT_OPTIONS, MAX_PLAYERS, geo, FACTIONS, viewFor, GameError, COLORS, RES, emptyHand,
   validSettlementVertices, validRoadEdges,
 } from './engine.js';
 import { HostNet, ClientNet, genCode, normalizeCode } from './net.js';
@@ -87,6 +87,13 @@ function renderLobby() {
   const sel = $('#opt-setup-roads');
   sel.value = String(opts.setupRoads);
   sel.disabled = !host;
+  const fo = $('#opt-factions');
+  fo.checked = !!opts.factions;
+  fo.disabled = !host;
+  const n = Math.max(players.length, 2);
+  $('#faction-list').hidden = !opts.factions;
+  $('#faction-list').innerHTML = FACTIONS.slice(0, n).map((f, i) => `<li style="--c:${COLORS[i]}"><span class="ftag">${f.color}・${f.title}</span><span>${esc(f.skill)}</span></li>`).join('')
+    + (opts.shuffleSeats ? '<li class="muted">開始時隨機分配順序，也就是隨機分配陣營</li>' : '');
   const ss = $('#opt-shuffle-seats');
   ss.checked = !!opts.shuffleSeats;
   ss.disabled = !host;
@@ -305,7 +312,7 @@ function autoplay() {
           const h = { ...s.players[pid].resources };
           const d = emptyHand();
           for (let k = 0; k < p.need[pid]; k++) {
-            const r = pick(RES.filter((x) => h[x] > 0));
+            const r = pick(RES.filter((x) => h[x] > 0 && !(x === 'ore' && s.players[pid].faction === 'blue')));
             h[r]--;
             d[r]++;
           }
@@ -507,6 +514,11 @@ function initHome() {
   $('#opt-setup-roads').addEventListener('change', (e) => {
     if (app.role !== 'host' || app.game) return;
     app.options.setupRoads = Number(e.target.value);
+    hostBroadcast();
+  });
+  $('#opt-factions').addEventListener('change', (e) => {
+    if (app.role !== 'host' || app.game) return;
+    app.options.factions = e.target.checked;
     hostBroadcast();
   });
   $('#opt-shuffle-seats').addEventListener('change', (e) => {
