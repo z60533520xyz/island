@@ -1,7 +1,7 @@
 {
-  "name": "catan-island",
+  "name": "daxuanzhan",
   "version": "1.0.0",
-  "description": "卡坦島網頁版：開房間、邀請好友，透過 WebRTC 點對點連線對戰",
+  "description": "大選戰：台灣選舉主題的多人網頁桌遊，開房間邀請好友，透過 WebRTC 點對點連線對戰",
   "private": true,
   "type": "module",
   "scripts": {

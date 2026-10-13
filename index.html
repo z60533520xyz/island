@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>卡坦島 Online</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+  <title>大選戰 Online</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗳️</text></svg>">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
   <script type="module" src="js/main.js"></script>
@@ -13,8 +13,8 @@
   <!-- 首頁 -->
   <section id="screen-home" class="screen" hidden>
     <div class="home">
-      <h1>🏝️ 卡坦島 <small>Online</small></h1>
-      <p class="sub">開房間、傳連結給朋友，透過瀏覽器點對點連線一起玩（2~6 人，5~6 人自動使用擴充大地圖）</p>
+      <h1>🗳️ 大選戰 <small>Online</small></h1>
+      <p class="sub">台灣選舉主題的策略桌遊：佈局服務處、開闢掃街路線、動員樁腳，搶先拿到 10 票當選！開房間傳連結給朋友，透過瀏覽器點對點連線一起玩（2~6 人）</p>
 
       <div class="card">
         <label for="name">你的名字</label>
@@ -50,15 +50,15 @@
       <details class="rules card">
         <summary>規則速查</summary>
         <ul>
-          <li><b>目標：</b>率先在自己的回合達到 <b>10 分</b>。村莊 1 分、城市 2 分、最長道路（≥5）2 分、最大騎士團（≥3）2 分、勝利分數卡 1 分。</li>
-          <li><b>準備：</b>開始時隨機決定順序；依順序各放 1 村莊 + 1 道路（房主可改成 2 條），再反序各放一次；第二座村莊立即獲得周圍資源。</li>
-          <li><b>回合：</b>擲骰 → 點數對應的地塊產出資源給相鄰的村莊（1 張）與城市（2 張）→ 交易 → 建造 → 結束回合。交易與建設是不同階段：一旦建造或購買發展卡，本回合就不能再交易。</li>
-          <li><b>擲出 7：</b>手牌超過 7 張者棄掉一半；當前玩家移動強盜，從該地塊旁自選一位玩家，指定搶走他 1 張資源。強盜所在地塊不產出。</li>
-          <li><b>建造：</b>道路 🌲🧱、村莊 🌲🧱🐑🌾、城市 🌾×2 ⛰️×3、發展卡 🐑🌾⛰️。村莊間至少相隔兩段路。</li>
-          <li><b>公開資訊：</b>所有人的資源卡都是公開的；發展卡只顯示張數。</li>
-          <li><b>交易：</b>銀行 4:1，擁有港口可 3:1 或 2:1；也可以向其他玩家提出交易。</li>
-          <li><b>發展卡：</b>每回合最多使用一張，當回合買的卡不能使用。騎士卡只有在強盜位於你的村莊或城市旁邊時才能使用。</li>
-          <li><b>5~6 人：</b>使用 30 塊地形的大地圖（2 個沙漠、11 個港口），銀行每種資源 24 張、發展卡 34 張。每個回合結束後進入「特別建設階段」，其他玩家依序可以建造或購買發展卡，但不能交易。</li>
+          <li><b>目標：</b>率先在自己的回合拿到 <b>10 票</b>當選。服務處 1 票、競選總部 2 票、最長掃街路線（≥5 段）2 票、最強樁腳網（≥3 位樁腳）2 票、民調領先卡 1 票。</li>
+          <li><b>資源：</b>📄 文宣、🪧 看板、🙋 志工、🍱 便當、💰 資金，由各選區產出；🥀 艱困選區不產出。</li>
+          <li><b>佈局：</b>開始時隨機決定順序；依序各設立 1 間服務處 + 1 條掃街路線（房主可改成 2 條），再反序各一次；第二間服務處立即獲得周圍選區的資源。</li>
+          <li><b>回合：</b>擲骰 → 點數對應的選區產出資源給相鄰的服務處（1 張）與競選總部（2 張）→ 交易 → 建設 → 結束回合。一旦建設或購買錦囊卡，本回合就不能再交易。</li>
+          <li><b>擲出 7（黑函事件）：</b>手上資源超過 7 張者棄掉一半；當前玩家把 🕵️ 黑函投向一個選區（該選區停止產出），並從旁邊自選一位對手挖角 1 張指定資源。</li>
+          <li><b>建設：</b>掃街路線 📄🪧、服務處 📄🪧🙋🍱、競選總部 🍱×2 💰×3、錦囊卡 🙋🍱💰。服務處之間至少相隔兩段路。</li>
+          <li><b>交易：</b>與公庫 4:1；掌握人脈可 3:1 或 2:1；也可以向其他候選人提出交易。所有人的資源都是公開的，錦囊卡只顯示張數。</li>
+          <li><b>錦囊卡：</b>👥 樁腳（移動黑函並挖角，須黑函在你的據點旁才能動員）、民調領先（+1 票）、掃街拜票（免費 2 條路線）、募款餐會（拿 2 張資源）、媒體壟斷（收走所有人某種資源）。每回合限用一張，當回合買的不能用。</li>
+          <li><b>5~6 人：</b>使用 30 個選區的大地圖（2 個艱困選區、11 個人脈），公庫每種資源 24 張、錦囊卡 34 張。每個回合結束後進入「特別建設階段」，其他候選人依序可以建設或購買錦囊卡，但不能交易。</li>
         </ul>
       </details>
     </div>
@@ -67,7 +67,7 @@
   <!-- 大廳 -->
   <section id="screen-lobby" class="screen" hidden>
     <div class="home">
-      <h1>🏝️ 卡坦島 <small>大廳</small></h1>
+      <h1>🗳️ 大選戰 <small>大廳</small></h1>
       <div class="card">
         <div class="status" hidden></div>
         <div class="lobby-code">房間代碼 <b id="lobby-code"></b></div>
@@ -81,10 +81,10 @@
           <input type="checkbox" id="opt-shuffle-seats">
         </div>
         <div class="lobby-options">
-          <label for="opt-setup-roads">準備階段每輪放置道路</label>
+          <label for="opt-setup-roads">佈局階段每輪放置掃街路線</label>
           <select id="opt-setup-roads">
-            <option value="1">1 條（官方規則）</option>
-            <option value="2">2 條（家規）</option>
+            <option value="1">1 條（標準）</option>
+            <option value="2">2 條（快速開局）</option>
           </select>
         </div>
         <div class="lobby-options">

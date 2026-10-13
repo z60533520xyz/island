@@ -62,7 +62,7 @@ function boardSVG(s, t) {
   const out = [];
   out.push('<rect x="-5000" y="-5000" width="10000" height="10000" class="sea"/>'); // 海洋填滿整個棋盤區
 
-  // 港口
+  // 人脈
   for (const port of s.board.ports) {
     const e = geo(s).edges[port.edge];
     const [a, b] = e.v.map((v) => geo(s).vertices[v]);
@@ -78,18 +78,18 @@ function boardSVG(s, t) {
     out.push(`<line x1="${b.x * S}" y1="${b.y * S}" x2="${px * S}" y2="${py * S}" class="pier"/>`);
     const label = port.type === 'any' ? '3:1' : '2:1';
     const icon = port.type === 'any' ? '❓' : RES_ICON[port.type];
-    const title = port.type === 'any' ? '3:1 港口：任意資源 3 換 1' : `2:1 港口：${RES_NAME[port.type]} 2 換 1`;
+    const title = port.type === 'any' ? '3:1 人脈：任意資源 3 換 1' : `2:1 人脈：${RES_NAME[port.type]} 2 換 1`;
     out.push(`<g class="port"><title>${title}</title><circle cx="${px * S}" cy="${py * S}" r="34"/>
       <text x="${px * S}" y="${py * S - 7}" class="port-icon">${icon}</text>
       <text x="${px * S}" y="${py * S + 21}" class="port-ratio">${label}</text></g>`);
   }
 
-  // 地塊
+  // 選區
   const sum = s.dice ? s.dice[0] + s.dice[1] : 0;
   s.board.hexes.forEach((tile, i) => {
     const h = geo(s).hexes[i];
     const hot = sum && sum !== 7 && tile.number === sum;
-    out.push(`<polygon points="${hexPoints(h)}" fill="${TILE_COLOR[tile.resource]}" class="tile${hot ? ' hot' : ''}"><title>${tile.resource === 'desert' ? '沙漠' : RES_NAME[tile.resource]}</title></polygon>`);
+    out.push(`<polygon points="${hexPoints(h)}" fill="${TILE_COLOR[tile.resource]}" class="tile${hot ? ' hot' : ''}"><title>${tile.resource === 'desert' ? '艱困選區' : RES_NAME[tile.resource]}</title></polygon>`);
     out.push(`<polygon points="${hexPoints(h, 0.82)}" class="tile-inner"/>`);
     const cx = h.x * S;
     const cy = h.y * S;
@@ -108,15 +108,15 @@ function boardSVG(s, t) {
     }
   });
 
-  // 強盜
+  // 黑函
   {
     const h = geo(s).hexes[s.board.robber];
     const x = h.x * S - (s.board.hexes[s.board.robber].number ? 50 : 0);
     const y = h.y * S + 8;
-    out.push(`<g class="robber"><title>強盜</title><ellipse cx="${x}" cy="${y + 10}" rx="15" ry="20"/><circle cx="${x}" cy="${y - 16}" r="11"/></g>`);
+    out.push(`<g class="robber"><title>黑函</title><ellipse cx="${x}" cy="${y + 10}" rx="15" ry="20"/><circle cx="${x}" cy="${y - 16}" r="11"/></g>`);
   }
 
-  // 道路
+  // 掃街路線
   for (const [eid, owner] of Object.entries(s.roads)) {
     const [a, b] = geo(s).edges[eid].v.map((v) => geo(s).vertices[v]);
     const k = 0.14;
@@ -142,7 +142,7 @@ function boardSVG(s, t) {
   }
   for (const eid of t.edges || []) {
     const [a, b] = geo(s).edges[eid].v.map((v) => geo(s).vertices[v]);
-    // 與村莊放置點相同風格：白色道路加紅色外框
+    // 與服務處放置點相同風格：白色掃街路線加紅色外框
     const k = 0.18;
     const seg = `x1="${(a.x + (b.x - a.x) * k) * S}" y1="${(a.y + (b.y - a.y) * k) * S}" x2="${(b.x + (a.x - b.x) * k) * S}" y2="${(b.y + (a.y - b.y) * k) * S}"`;
     out.push(`<g class="spot-edge" data-edge="${eid}"><line x1="${a.x * S}" y1="${a.y * S}" x2="${b.x * S}" y2="${b.y * S}" class="hit"/><line ${seg} class="vis-outline"/><line ${seg} class="vis"/></g>`);
@@ -186,50 +186,50 @@ function hintText(s, t) {
   if (s.phase === 'ended') return `🏆 ${nameOf(s.winner)} 獲勝！`;
   if (s.phase === 'setup') {
     const round = s.setup.idx < s.players.length ? 1 : 2;
-    if (!mine) return `等待 ${nameOf(cur)} 放置起始${s.setup.stage === 'settlement' ? '村莊' : '道路'}…（第 ${round} 輪）`;
+    if (!mine) return `等待 ${nameOf(cur)} 放置起始${s.setup.stage === 'settlement' ? '服務處' : '掃街路線'}…（第 ${round} 輪）`;
     const total = s.options?.setupRoads ?? 1;
     const placed = s.setup.roads?.length || 0;
     return s.setup.stage === 'settlement'
-      ? `第 ${round} 輪：點選亮起的路口放置村莊${round === 2 ? '（會立即獲得周圍地塊的資源）' : ''}`
+      ? `第 ${round} 輪：點選亮起的路口放置服務處${round === 2 ? '（會立即獲得周圍選區的資源）' : ''}`
       : total > 1
-        ? `點選與剛放置的村莊或道路相連的邊放置道路（第 ${placed + 1}/${total} 條）`
-        : '點選與剛放置村莊相連的邊放置道路';
+        ? `點選與剛放置的服務處或掃街路線相連的邊放置掃街路線（第 ${placed + 1}/${total} 條）`
+        : '點選與剛放置服務處相連的邊放置掃街路線';
   }
   const p = s.pending;
   if (p?.type === 'specialBuild') {
     const b = p.queue[0];
     return b === me
-      ? '🔨 特別建設階段：你可以建造或購買發展卡（不能交易），完成後按「結束建設」'
+      ? '🔨 特別建設階段：你可以建造或購買錦囊卡（不能交易），完成後按「結束建設」'
       : `🔨 特別建設階段：等待 ${nameOf(b)} 建設…`;
   }
   if (p?.type === 'discard') {
     if (p.need[me]) return `擲出 7！你的手牌超過 7 張，請棄掉 ${p.need[me]} 張`;
     return `等待玩家棄牌：${Object.keys(p.need).map((i) => nameOf(+i)).join('、')}`;
   }
-  if (p?.type === 'robber') return mine ? '🦹 點選一個地塊放置強盜' : `等待 ${nameOf(cur)} 移動強盜…`;
-  if (p?.type === 'steal') return mine ? '選擇要搶奪的玩家與資源' : `等待 ${nameOf(cur)} 選擇搶奪對象…`;
-  if (p?.type === 'roadBuilding') return mine ? `🛠️ 道路建設：點選位置建造道路（剩 ${p.remaining} 條）` : `${nameOf(cur)} 正在使用道路建設…`;
+  if (p?.type === 'robber') return mine ? '🕵️ 點選一個選區放置黑函' : `等待 ${nameOf(cur)} 移動黑函…`;
+  if (p?.type === 'steal') return mine ? '選擇要挖角的玩家與資源' : `等待 ${nameOf(cur)} 選擇挖角對象…`;
+  if (p?.type === 'roadBuilding') return mine ? `📢 掃街拜票：點選位置建造掃街路線（剩 ${p.remaining} 條）` : `${nameOf(cur)} 正在使用掃街拜票…`;
   if (!mine) return `等待 ${nameOf(cur)} 的回合…`;
-  if (!s.rolled) return '🎲 你的回合！擲骰子開始（也可以先使用騎士卡）';
+  if (!s.rolled) return '🎲 你的回合！擲骰子開始（也可以先使用樁腳卡）';
   if (app.mode) {
-    const n = { road: '道路', settlement: '村莊', city: '城市' }[app.mode];
+    const n = { road: '掃街路線', settlement: '服務處', city: '競選總部' }[app.mode];
     if (!(t.edges?.length || t.vertices?.length)) return `目前沒有可以建造${n}的位置`;
     return `點選亮起的位置建造${n}（再按一次按鈕取消）`;
   }
   return s.built
-    ? '🔨 建設階段：可以繼續建造或使用發展卡（本回合已不能交易），完成後按「結束回合」'
-    : '🤝 交易階段：先完成交易，再建造（一旦建造或購買發展卡就不能再交易）';
+    ? '🔨 建設階段：可以繼續建造或使用錦囊卡（本回合已不能交易），完成後按「結束回合」'
+    : '🤝 交易階段：先完成交易，再建造（一旦建造或購買錦囊卡就不能再交易）';
 }
 
 function renderTopbar(s) {
   const turnInfo = s.phase === 'setup' ? '準備階段' : s.phase === 'ended' ? '遊戲結束' : `第 ${Math.ceil(s.turn / s.players.length)} 輪`;
   const dice = s.dice ? `<span class="dice" title="${s.dice[0] + s.dice[1]}">${DICE[s.dice[0]]}${DICE[s.dice[1]]}</span><b class="dice-sum">${s.dice[0] + s.dice[1]}</b>` : '';
   $('#topbar').innerHTML = `
-    <div class="brand">🏝️ 卡坦島</div>
+    <div class="brand">🗳️ 大選戰</div>
     <div class="room">房間 <b>${esc(app.code)}</b> <button class="link" data-act="copyInvite">複製邀請連結</button></div>
-    <div class="turninfo">${turnInfo} · 先達 ${WIN_VP} 分獲勝</div>
+    <div class="turninfo">${turnInfo} · 先拿到 ${WIN_VP} 票當選</div>
     <div class="dicebox">${dice}</div>
-    <div class="bankinfo" title="銀行剩餘資源 / 發展卡">${RES.map((r) => `<span>${RES_ICON[r]}${s.bank[r]}</span>`).join('')}<span>📜${s.deckCount}</span></div>`;
+    <div class="bankinfo" title="公庫剩餘資源 / 錦囊卡">${RES.map((r) => `<span>${RES_ICON[r]}${s.bank[r]}</span>`).join('')}<span>📜${s.deckCount}</span></div>`;
 }
 
 function renderPlayers(s) {
@@ -237,8 +237,8 @@ function renderPlayers(s) {
     const vp = victoryPoints(s, i, i === app.me || s.phase === 'ended');
     const online = app.online[i] !== false;
     const badges = [
-      s.longestRoad === i ? '<span class="badge" title="最長道路 +2 分">🛣️ 最長道路</span>' : '',
-      s.largestArmy === i ? '<span class="badge" title="最大騎士團 +2 分">⚔️ 最大騎士團</span>' : '',
+      s.longestRoad === i ? '<span class="badge" title="最長掃街路線 +2 票">🚶 最長掃街路線</span>' : '',
+      s.largestArmy === i ? '<span class="badge" title="最強樁腳網 +2 票">👥 最強樁腳網</span>' : '',
     ].join('');
     const builder = s.pending?.type === 'specialBuild' && s.pending.queue[0] === i;
     return `<div class="player${s.current === i && s.phase !== 'ended' ? ' current' : ''}${builder ? ' builder' : ''}" style="--c:${p.color}">
@@ -246,15 +246,15 @@ function renderPlayers(s) {
         <span class="pdot"></span>
         <b class="pn">${esc(p.name)}${i === app.me ? '（你）' : ''}${builder ? ' 🔨' : ''}</b>
         ${online ? '' : '<span class="offline" title="離線中">離線</span>'}
-        <span class="vp" title="勝利分數${i === app.me ? '（含隱藏的分數卡）' : ''}">⭐ ${vp}</span>
+        <span class="vp" title="得票${i === app.me ? '（含隱藏的民調領先卡）' : ''}">🗳️ ${vp}</span>
       </div>
       <div class="pres">${RES.map((r) => `<span class="${p.resources[r] ? '' : 'zero'}" title="${RES_NAME[r]}">${RES_ICON[r]}${p.resources[r]}</span>`).join('')}</div>
       <div class="pstats">
         <span title="資源卡">🃏 ${p.handCount}</span>
-        <span title="發展卡">📜 ${p.devCount}</span>
-        <span title="已使用騎士">⚔️ ${p.knights}</span>
-        <span title="最長道路長度">🛣️ ${p.roadLen}</span>
-        <span title="剩餘棋子：道路/村莊/城市" class="pieces">🧩 ${p.pieces.road}/${p.pieces.settlement}/${p.pieces.city}</span>
+        <span title="錦囊卡">📜 ${p.devCount}</span>
+        <span title="已使用樁腳">👥 ${p.knights}</span>
+        <span title="最長掃街路線長度">🚶 ${p.roadLen}</span>
+        <span title="剩餘棋子：掃街路線/服務處/競選總部" class="pieces">🧩 ${p.pieces.road}/${p.pieces.settlement}/${p.pieces.city}</span>
       </div>
       ${badges ? `<div class="badges">${badges}</div>` : ''}
     </div>`;
@@ -280,13 +280,13 @@ function renderHand(s) {
       return `<div class="dcard" title="${DEV_DESC[type]}">
         <div><b>${DEV_NAME[type]}</b> ×${n}</div>
         <div class="ddesc">${DEV_DESC[type]}</div>
-        ${type === 'vp' ? '' : `<button data-act="playDev" data-card="${type}" ${can ? '' : 'disabled'}>${fresh ? '下回合可用' : blocked ? '強盜不在旁邊' : '使用'}</button>`}
+        ${type === 'vp' ? '' : `<button data-act="playDev" data-card="${type}" ${can ? '' : 'disabled'}>${fresh ? '下回合可用' : blocked ? '黑函不在旁邊' : '使用'}</button>`}
       </div>`;
     }).join('')
-    : '<div class="muted">尚無發展卡</div>';
+    : '<div class="muted">尚無錦囊卡</div>';
 
   $('#hand').innerHTML = `<h3>你的手牌 <small>${handTotal(P.resources)} 張</small></h3><div class="rcards">${cards}</div>
-    <h3>發展卡${s.devPlayed && mine ? ' <small>（本回合已使用）</small>' : ''}</h3><div class="dcards">${devHtml}</div>`;
+    <h3>錦囊卡${s.devPlayed && mine ? ' <small>（本回合已使用）</small>' : ''}</h3><div class="dcards">${devHtml}</div>`;
 }
 
 function costHtml(cost) {
@@ -301,10 +301,10 @@ function buildButtons(s, me, busy) {
   };
   const canDev = !busy && canAfford(P.resources, COST.dev) && s.deckCount > 0;
   return `<div class="btngrid">
-    ${btn('road', '🛤️ 道路', COST.road, validRoadEdges(s, me).length)}
-    ${btn('settlement', '🏠 村莊', COST.settlement, validSettlementVertices(s, me).length)}
-    ${btn('city', '🏰 城市', COST.city, validCityVertices(s, me).length)}
-    <button data-act="buyDev" ${canDev ? '' : 'disabled'}>📜 發展卡<span class="cost">${costHtml(COST.dev)}</span></button>
+    ${btn('road', '🚶 掃街路線', COST.road, validRoadEdges(s, me).length)}
+    ${btn('settlement', '🏢 服務處', COST.settlement, validSettlementVertices(s, me).length)}
+    ${btn('city', '🏛️ 競選總部', COST.city, validCityVertices(s, me).length)}
+    <button data-act="buyDev" ${canDev ? '' : 'disabled'}>📜 錦囊卡<span class="cost">${costHtml(COST.dev)}</span></button>
   </div>`;
 }
 
@@ -323,7 +323,7 @@ function renderActions(s) {
   }
   const out = [];
   if (s.pending?.type === 'roadBuilding') {
-    out.push('<button data-act="skipRoadBuilding">放棄剩餘道路</button>');
+    out.push('<button data-act="skipRoadBuilding">放棄剩餘掃街路線</button>');
   } else if (!s.rolled) {
     out.push(`<button class="primary big" data-act="roll" ${s.pending ? 'disabled' : ''}>🎲 擲骰子</button>`);
   } else {
@@ -410,7 +410,7 @@ function modalContent(s) {
   // 強制對話框（由遊戲狀態決定）
   if (s.phase === 'ended') {
     const rows = s.players.map((p, i) => ({ i, vp: victoryPoints(s, i) })).sort((a, b) => b.vp - a.vp)
-      .map(({ i, vp }) => `<div class="final">${nameOf(i)} <b>⭐ ${vp}</b></div>`).join('');
+      .map(({ i, vp }) => `<div class="final">${nameOf(i)} <b>🗳️ ${vp}</b></div>`).join('');
     return { key: 'end', html: `<h2>🏆 ${nameOf(s.winner)} 獲勝！</h2>${rows}<div class="btnrow"><button data-act="closeModal">查看棋盤</button><button class="primary" data-act="leave">回到首頁</button></div>`, closable: true };
   }
   if (s.pending?.type === 'discard' && s.pending.need[me]) {
@@ -427,7 +427,7 @@ function modalContent(s) {
       const picks = RES.map((r) => `<button class="pick" data-act="steal" data-target="${i}" data-res="${r}" ${h[r] > 0 ? '' : 'disabled'} title="${RES_NAME[r]}">${RES_ICON[r]}<small>${h[r]}</small></button>`).join('');
       return `<div class="steal-row"><div>${nameOf(i)} <span class="muted">（${s.players[i].handCount} 張）</span></div><div class="picks">${picks}</div></div>`;
     }).join('');
-    return { key: 'steal', html: `<h2>🦹 搶奪</h2><p>選擇對象，點一種資源搶走 1 張：</p>${rows}` };
+    return { key: 'steal', html: `<h2>🕵️ 挖角</h2><p>選擇對象，點一種資源挖走 1 張：</p>${rows}` };
   }
 
   const m = app.modal;
@@ -436,12 +436,12 @@ function modalContent(s) {
     const sel = app.modalData.yop ||= emptyHand();
     const total = handTotal(sel);
     const rows = RES.map((r) => stepper('yop', r, sel[r], Math.min(s.bank[r], sel[r] + 2 - total))).join('');
-    return { key: 'yop', closable: true, html: `<h2>✨ 豐收之年</h2><p>從銀行選擇 2 張資源（已選 ${total}）</p><div class="steppers">${rows}</div>
+    return { key: 'yop', closable: true, html: `<h2>🍽️ 募款餐會</h2><p>從公庫選擇 2 張資源（已選 ${total}）</p><div class="steppers">${rows}</div>
       <div class="btnrow"><button data-act="closeModal">取消</button><button class="primary" data-act="confirmYop" ${total === 2 ? '' : 'disabled'}>確定</button></div>` };
   }
   if (m === 'monopoly') {
     const btns = RES.map((r) => `<button data-act="confirmMonopoly" data-res="${r}">${RES_ICON[r]} ${RES_NAME[r]}</button>`).join('');
-    return { key: 'monopoly', closable: true, html: `<h2>💰 壟斷</h2><p>選擇一種資源，其他玩家必須交出所有該資源：</p><div class="btngrid">${btns}</div>
+    return { key: 'monopoly', closable: true, html: `<h2>📺 媒體壟斷</h2><p>選擇一種資源，其他玩家必須交出所有該資源：</p><div class="btngrid">${btns}</div>
       <div class="btnrow"><button data-act="closeModal">取消</button></div>` };
   }
   if (m === 'trade') {
@@ -449,7 +449,7 @@ function modalContent(s) {
     d.tab ||= 'bank';
     d.pgive ||= emptyHand();
     d.pwant ||= emptyHand();
-    const tabs = `<div class="tabs"><button data-act="tradeTab" data-tab="bank" class="${d.tab === 'bank' ? 'active' : ''}">銀行／港口</button><button data-act="tradeTab" data-tab="player" class="${d.tab === 'player' ? 'active' : ''}">玩家交易</button></div>`;
+    const tabs = `<div class="tabs"><button data-act="tradeTab" data-tab="bank" class="${d.tab === 'bank' ? 'active' : ''}">公庫／人脈</button><button data-act="tradeTab" data-tab="player" class="${d.tab === 'player' ? 'active' : ''}">玩家交易</button></div>`;
     let body;
     if (d.tab === 'bank') {
       const ratios = tradeRatios(s, me);
@@ -459,7 +459,7 @@ function modalContent(s) {
       }).join('');
       const get = RES.map((r) => `<button class="pick${d.bget === r ? ' active' : ''}" data-act="pickBank" data-field="bget" data-res="${r}" ${s.bank[r] > 0 && r !== d.bgive ? '' : 'disabled'}>${RES_ICON[r]}<small>${s.bank[r]}</small></button>`).join('');
       const ok = d.bgive && d.bget && d.bgive !== d.bget && P.resources[d.bgive] >= ratios[d.bgive];
-      body = `<p>付出（顯示兌換比例）</p><div class="picks">${give}</div><p>換取 1 張（顯示銀行庫存）</p><div class="picks">${get}</div>
+      body = `<p>付出（顯示兌換比例）</p><div class="picks">${give}</div><p>換取 1 張（顯示公庫庫存）</p><div class="picks">${get}</div>
         <div class="btnrow"><button class="primary" data-act="confirmBank" ${ok ? '' : 'disabled'}>交易${ok ? `：${RES_ICON[d.bgive]}×${ratios[d.bgive]} → ${RES_ICON[d.bget]}×1` : ''}</button></div>`;
     } else {
       const give = RES.map((r) => stepper('pgive', r, d.pgive[r], P.resources[r])).join('');
@@ -560,7 +560,7 @@ export function render() {
   if (!s) return;
   const t = targets();
   const b = geo(s).bounds;
-  const m = 1.3; // 留給海洋與港口的邊界
+  const m = 1.3; // 留給海洋與人脈的邊界
   $('#board').setAttribute('viewBox', [b.minX - m, b.minY - m, b.maxX - b.minX + 2 * m, b.maxY - b.minY + 2 * m].map((x) => Math.round(x * S)).join(' '));
   $('#board').innerHTML = boardSVG(s, t);
   $('#board').classList.toggle('picking', !!(t.vertices || t.edges || t.hexes));

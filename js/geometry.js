@@ -1,7 +1,7 @@
-// 棋盤幾何：地塊為尖頂朝上的六角形。
-// - standard：基本版 19 塊（2~4 人），54 個路口、72 條邊
-// - large：5~6 人擴充版 30 塊（每列 3-4-5-6-5-4-3）
-// 幾何結構是確定性的，所有玩家各自計算即可；只有資源/數字/港口配置需要由房主產生並同步。
+// 棋盤幾何：選區為尖頂朝上的六角形。
+// - standard：標準地圖 19 個選區（2~4 人），54 個路口、72 條邊
+// - large：5~6 人大地圖 30 個選區（每列 3-4-5-6-5-4-3）
+// 幾何結構是確定性的，所有玩家各自計算即可；只有資源/數字/人脈配置需要由房主產生並同步。
 
 const SQRT3 = Math.sqrt(3);
 
@@ -20,7 +20,7 @@ export const LAYOUTS = {
   },
 };
 
-// 依每列的地塊數產生軸座標 (q, r)；每列置中排列
+// 依每列的選區數產生軸座標 (q, r)；每列置中排列
 function layoutCoords(rows) {
   const coords = [];
   const mid = (rows.length - 1) / 2;
@@ -126,7 +126,7 @@ export function shuffle(arr, rng = Math.random) {
   return arr;
 }
 
-// 港口平均分布在沿海邊上；相鄰的港口至少隔一條邊，保證不共用路口
+// 人脈平均分布在沿海邊上；相鄰的人脈至少隔一條邊，保證不共用路口
 export function portSlots(coastalCount, portCount) {
   return Array.from({ length: portCount }, (_, i) => Math.round((i * coastalCount) / portCount));
 }

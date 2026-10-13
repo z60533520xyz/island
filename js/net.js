@@ -2,7 +2,7 @@
 // 客戶端 → 房主：{t:'hello'|'action'|'chat'}，房主 → 客戶端：{t:'lobby'|'state'|'error'|'chat'|'kick'}
 /* global Peer */
 
-const PREFIX = 'catan-island-v1-';
+const PREFIX = 'daxuanzhan-v1-';
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export function genCode(len = 5) {

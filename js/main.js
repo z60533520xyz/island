@@ -6,16 +6,16 @@ import {
 import { HostNet, ClientNet, genCode, normalizeCode } from './net.js';
 import { initUI, render, toast, esc } from './ui.js';
 
-const HOST_SAVE = 'catan-island-host';
-const CLIENT_SESSION = 'catan-island-client';
+const HOST_SAVE = 'daxuanzhan-host';
+const CLIENT_SESSION = 'daxuanzhan-client';
 
 const $ = (sel) => document.querySelector(sel);
 
 function myToken() {
-  let t = sessionStorage.getItem('catan-island-token');
+  let t = sessionStorage.getItem('daxuanzhan-token');
   if (!t) {
     t = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-    sessionStorage.setItem('catan-island-token', t);
+    sessionStorage.setItem('daxuanzhan-token', t);
   }
   return t;
 }
@@ -28,7 +28,7 @@ const app = {
   options: { ...DEFAULT_OPTIONS }, // 房主：房間設定
   seats: [], // 房主：[{ name, token, conn, online }]
   game: null, // 房主：完整遊戲狀態
-  view: null, // 自己看到的狀態（隱藏他人發展卡）
+  view: null, // 自己看到的狀態（隱藏他人錦囊卡）
   me: null,
   lobby: null,
   online: [],
@@ -94,8 +94,8 @@ function renderLobby() {
   sb.checked = !!opts.specialBuild;
   sb.disabled = !host;
   $('#lobby-map').textContent = players.length >= 5
-    ? '🗺️ 5~6 人擴充地圖（30 塊地形、2 塊沙漠、11 個港口）'
-    : '🗺️ 基本地圖（19 塊地形）；5~6 人時自動改用擴充地圖';
+    ? '🗺️ 5~6 人大地圖（30 個選區、2 個艱困選區、11 個人脈）'
+    : '🗺️ 標準地圖（19 個選區）；5~6 人時自動改用大地圖';
   $('#btn-start').hidden = !host;
   $('#btn-start').disabled = players.length < 2;
   $('#lobby-note').textContent = host
@@ -111,7 +111,7 @@ function onView() {
     toast('輪到你了！', 'info');
   }
   lastCurrent = s.current;
-  document.title = s.phase !== 'ended' && s.current === app.me ? '▶ 輪到你了 - 卡坦島' : '卡坦島 Online';
+  document.title = s.phase !== 'ended' && s.current === app.me ? '▶ 輪到你了 - 大選戰' : '大選戰 Online';
   if (s.phase === 'ended') localStorage.removeItem(HOST_SAVE);
   render();
 }
@@ -462,7 +462,7 @@ function readName() {
     $('#name').focus();
     return null;
   }
-  localStorage.setItem('catan-island-name', name);
+  localStorage.setItem('daxuanzhan-name', name);
   app.name = name;
   return name;
 }
@@ -476,7 +476,7 @@ function leave() {
 // ================================================================= 初始化
 
 function initHome() {
-  $('#name').value = localStorage.getItem('catan-island-name') || '';
+  $('#name').value = localStorage.getItem('daxuanzhan-name') || '';
   const params = new URLSearchParams(location.search);
   const room = normalizeCode(params.get('room'));
   if (room) {

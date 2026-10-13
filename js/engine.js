@@ -1,16 +1,16 @@
-// 卡坦島規則引擎：純資料、無 DOM 依賴。只由房主執行，客戶端只拿來做查詢（合法位置、分數等）。
+// 大選戰規則引擎：純資料、無 DOM 依賴。只由房主執行，客戶端只拿來做查詢（合法位置、分數等）。
 import { geoFor, generateBoard, shuffle } from './geometry.js';
 
 export const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
-export const RES_NAME = { wood: '木材', brick: '磚塊', sheep: '羊毛', wheat: '小麥', ore: '礦石' };
-export const RES_ICON = { wood: '🌲', brick: '🧱', sheep: '🐑', wheat: '🌾', ore: '⛰️', desert: '🏜️' };
-export const DEV_NAME = { knight: '騎士', vp: '勝利分數', roadBuilding: '道路建設', yearOfPlenty: '豐收之年', monopoly: '壟斷' };
+export const RES_NAME = { wood: '文宣', brick: '看板', sheep: '志工', wheat: '便當', ore: '資金' };
+export const RES_ICON = { wood: '📄', brick: '🪧', sheep: '🙋', wheat: '🍱', ore: '💰', desert: '🥀' };
+export const DEV_NAME = { knight: '樁腳', vp: '民調領先', roadBuilding: '掃街拜票', yearOfPlenty: '募款餐會', monopoly: '媒體壟斷' };
 export const DEV_DESC = {
-  knight: '移動強盜並搶奪一張資源卡（強盜須在你的村莊或城市旁邊才能使用）',
-  vp: '+1 勝利分數（自動計入，不需打出）',
-  roadBuilding: '免費建造 2 條道路',
-  yearOfPlenty: '從銀行拿取任意 2 張資源',
-  monopoly: '宣告一種資源，其他玩家須交出所有該資源',
+  knight: '動員樁腳：移動黑函並挖角一張資源（黑函須在你的服務處或競選總部旁才能使用）',
+  vp: '+1 得票（自動計入，不需打出）',
+  roadBuilding: '免費開闢 2 條掃街路線',
+  yearOfPlenty: '從公庫募得任意 2 張資源',
+  monopoly: '指定一種資源，其他玩家須交出所有該資源',
 };
 export const COST = {
   road: { wood: 1, brick: 1 },
@@ -18,7 +18,8 @@ export const COST = {
   city: { wheat: 2, ore: 3 },
   dev: { sheep: 1, wheat: 1, ore: 1 },
 };
-export const COLORS = ['#d63031', '#0984e3', '#e67e22', '#27ae60', '#8e44ad', '#6d4c41'];
+// 玩家顏色：各政黨主要顏色（藍、綠、青綠、黃、橘、暗紅）
+export const COLORS = ['#1f4fb4', '#1b9431', '#1fb5b5', '#f5b800', '#ff6a13', '#a73f24'];
 export const MAX_PLAYERS = 6;
 
 export const WIN_VP = 10;
@@ -60,7 +61,7 @@ function rand(n) {
 
 export const DEFAULT_OPTIONS = { setupRoads: 1, specialBuild: true, shuffleSeats: true };
 
-// 2~4 人用基本版，5~6 人用擴充版（較大地圖、較多資源與發展卡）
+// 2~4 人用標準地圖，5~6 人用大地圖（較多資源與錦囊卡）
 const SETS = {
   standard: { bank: 19, deck: { knight: 14, vp: 5, roadBuilding: 2, yearOfPlenty: 2, monopoly: 2 } },
   large: { bank: 24, deck: { knight: 20, vp: 5, roadBuilding: 3, yearOfPlenty: 3, monopoly: 3 } },
@@ -85,7 +86,7 @@ export function createGame(seats, opts = {}) {
   const n = seats.length;
   if (n < 2 || n > MAX_PLAYERS) fail(`需要 2~${MAX_PLAYERS} 位玩家`);
   const options = { ...DEFAULT_OPTIONS, ...opts };
-  if (![1, 2].includes(options.setupRoads)) fail('起始道路數只能是 1 或 2');
+  if (![1, 2].includes(options.setupRoads)) fail('起始掃街路線數只能是 1 或 2');
   options.specialBuild = !!options.specialBuild;
   options.shuffleSeats = !!options.shuffleSeats;
   // 玩家順序（= 回合順序、顏色）；seat 記錄他在大廳的座位，讓房主對應連線
@@ -129,7 +130,7 @@ export function createGame(seats, opts = {}) {
     seq: 0,
   };
   log(s, `${options.shuffleSeats ? '🎲 隨機決定順序' : '依座位順序'}：${s.players.map((p) => p.name).join(' → ')}`);
-  log(s, `遊戲開始！${layout === 'large' ? '5~6 人擴充地圖。' : ''}每輪依序放置 1 座村莊 + ${options.setupRoads} 條道路，共兩輪（第二輪順序相反）。`);
+  log(s, `遊戲開始！${layout === 'large' ? '5~6 人大地圖。' : ''}每輪依序設立 1 間服務處 + ${options.setupRoads} 條掃街路線，共兩輪（第二輪順序相反）。`);
   return s;
 }
 
@@ -173,7 +174,7 @@ export function validRoadEdges(s, pid) {
   if (s.phase === 'setup') {
     const v = s.setup.vertex;
     if (v == null) return [];
-    // 可以接在本輪剛放的村莊，或本輪已放的道路末端
+    // 可以接在本輪剛放的服務處，或本輪已放的掃街路線末端
     const ends = new Set([v]);
     for (const e of s.setup.roads || []) geo(s).edges[e].v.forEach((x) => ends.add(x));
     return [...new Set([...ends].flatMap((x) => geo(s).vertices[x].edges))].filter((e) => s.roads[e] == null);
@@ -233,7 +234,7 @@ export function longestRoadFor(s, pid) {
   return best;
 }
 
-// 家規：強盜必須在自己的村莊或城市旁邊，才能使用騎士卡
+// 黑函必須在自己的服務處或競選總部旁邊，才能動員樁腳
 export function robberNearOwn(s, pid) {
   return geo(s).hexes[s.board.robber].vertices.some((v) => s.buildings[v]?.owner === pid);
 }
@@ -259,8 +260,8 @@ function updateLongestRoad(s) {
   }
   if (next !== holder) {
     s.longestRoad = next;
-    if (next != null) log(s, `🛣️ ${nm(s, next)} 取得「最長道路」（${max} 段）`);
-    else log(s, '🛣️ 「最長道路」暫時無人持有');
+    if (next != null) log(s, `🚶 ${nm(s, next)} 取得「最長掃街路線」（${max} 段）`);
+    else log(s, '🚶 「最長掃街路線」暫時無人持有');
   }
 }
 
@@ -270,7 +271,7 @@ function updateLargestArmy(s, pid) {
   const holder = s.largestArmy;
   if (holder == null || k > s.players[holder].knights) {
     s.largestArmy = pid;
-    log(s, `⚔️ ${nm(s, pid)} 取得「最大騎士團」（${k} 位騎士）`);
+    log(s, `👥 ${nm(s, pid)} 取得「最強樁腳網」（${k} 位樁腳）`);
   }
 }
 
@@ -295,9 +296,9 @@ function produce(s, sum) {
       for (const [pid, n] of entries) gains[pid][r] += n;
     } else if (entries.length === 1) {
       gains[entries[0][0]][r] += s.bank[r];
-      log(s, `銀行的${RES_NAME[r]}不足，只能發出剩餘的 ${s.bank[r]} 張`);
+      log(s, `公庫的${RES_NAME[r]}不足，只能發出剩餘的 ${s.bank[r]} 張`);
     } else {
-      log(s, `銀行的${RES_NAME[r]}不足，本次無人獲得${RES_NAME[r]}`);
+      log(s, `公庫的${RES_NAME[r]}不足，本次無人獲得${RES_NAME[r]}`);
     }
   }
   let any = false;
@@ -317,7 +318,7 @@ export function fmtHand(h) {
 function steal(s, thief, victim, r) {
   s.players[victim].resources[r]--;
   s.players[thief].resources[r]++;
-  log(s, `🦹 ${nm(s, thief)} 從 ${nm(s, victim)} 搶走 1 張資源卡`);
+  log(s, `🕵️ ${nm(s, thief)} 從 ${nm(s, victim)} 挖走 1 張資源卡`);
 }
 
 function afterRobberMoved(s, pid) {
@@ -328,7 +329,7 @@ function afterRobberMoved(s, pid) {
     if (b && b.owner !== pid && handTotal(s.players[b.owner].resources) > 0) victims.add(b.owner);
   }
   const list = [...victims];
-  // 強盜一律自己選擇對象與資源（即使只有一位可搶）
+  // 黑函一律自己選擇對象與資源（即使只有一位可挖角）
   s.pending = list.length ? { type: 'steal', candidates: list } : null;
 }
 
@@ -342,7 +343,7 @@ function normHand(h) {
   return out;
 }
 
-// 回合分為「交易 → 建設」兩個階段：一旦建造或購買發展卡，本回合就不能再交易
+// 回合分為「交易 → 建設」兩個階段：一旦建造或購買錦囊卡，本回合就不能再交易
 function enterBuildPhase(s) {
   if (s.built) return;
   s.built = true;
@@ -378,7 +379,7 @@ export function applyAction(s, pid, a) {
     if (s.pending) fail('請先完成目前的步驟');
     if (!s.rolled) fail('請先擲骰子');
   };
-  // 特別建設階段：只有排在佇列最前面的玩家可以建造或購買發展卡
+  // 特別建設階段：只有排在佇列最前面的玩家可以建造或購買錦囊卡
   const special = s.pending?.type === 'specialBuild';
   const isBuilder = special && s.pending.queue[0] === pid;
   const requireTrade = () => {
@@ -395,9 +396,9 @@ export function applyAction(s, pid, a) {
       if (!isBuilder) requireTurn();
       const kind = a.kind;
       if (s.phase === 'setup') {
-        if (kind !== s.setup.stage) fail(s.setup.stage === 'settlement' ? '請放置村莊' : '請放置道路');
+        if (kind !== s.setup.stage) fail(s.setup.stage === 'settlement' ? '請設立服務處' : '請放置掃街路線');
         if (kind === 'settlement') {
-          if (!validSettlementVertices(s, pid).includes(a.at)) fail('這裡不能蓋村莊');
+          if (!validSettlementVertices(s, pid).includes(a.at)) fail('這裡不能設立服務處');
           s.buildings[a.at] = { owner: pid, type: 'settlement' };
           P.pieces.settlement--;
           s.setup.vertex = a.at;
@@ -409,12 +410,12 @@ export function applyAction(s, pid, a) {
               if (r !== 'desert') g[r]++;
             }
             for (const r of RES) if (g[r]) give(s, pid, r, g[r]);
-            log(s, `${nm(s, pid)} 放置第二座村莊，獲得 ${fmtHand(g) || '（無）'}`);
+            log(s, `${nm(s, pid)} 設立第二間服務處，獲得 ${fmtHand(g) || '（無）'}`);
           } else {
-            log(s, `${nm(s, pid)} 放置了村莊`);
+            log(s, `${nm(s, pid)} 設立了服務處`);
           }
         } else if (kind === 'road') {
-          if (!validRoadEdges(s, pid).includes(a.at)) fail('道路必須連接剛放置的村莊或道路');
+          if (!validRoadEdges(s, pid).includes(a.at)) fail('掃街路線必須連接剛放置的服務處或掃街路線');
           s.roads[a.at] = pid;
           P.pieces.road--;
           (s.setup.roads ||= []).push(a.at);
@@ -439,40 +440,40 @@ export function applyAction(s, pid, a) {
 
       if (s.phase !== 'play') fail('現在不能這麼做');
       if (kind === 'road' && s.pending && s.pending.type === 'roadBuilding') {
-        if (!validRoadEdges(s, pid).includes(a.at)) fail('這裡不能蓋道路');
+        if (!validRoadEdges(s, pid).includes(a.at)) fail('這裡不能開闢掃街路線');
         s.roads[a.at] = pid;
         P.pieces.road--;
         s.pending.remaining--;
-        log(s, `${nm(s, pid)} 使用道路建設蓋了一條道路`);
+        log(s, `${nm(s, pid)} 透過掃街拜票開闢了一條掃街路線`);
         updateLongestRoad(s);
         if (s.pending.remaining <= 0 || validRoadEdges(s, pid).length === 0) s.pending = null;
         break;
       }
       requireBuild();
       if (kind === 'road') {
-        if (!validRoadEdges(s, pid).includes(a.at)) fail('這裡不能蓋道路');
+        if (!validRoadEdges(s, pid).includes(a.at)) fail('這裡不能開闢掃街路線');
         pay(s, pid, COST.road);
         enterBuildPhase(s);
         s.roads[a.at] = pid;
         P.pieces.road--;
-        log(s, `${nm(s, pid)} 蓋了一條道路`);
+        log(s, `${nm(s, pid)} 開闢了一條掃街路線`);
         updateLongestRoad(s);
       } else if (kind === 'settlement') {
-        if (!validSettlementVertices(s, pid).includes(a.at)) fail('這裡不能蓋村莊');
+        if (!validSettlementVertices(s, pid).includes(a.at)) fail('這裡不能設立服務處');
         pay(s, pid, COST.settlement);
         enterBuildPhase(s);
         s.buildings[a.at] = { owner: pid, type: 'settlement' };
         P.pieces.settlement--;
-        log(s, `${nm(s, pid)} 蓋了一座村莊`);
+        log(s, `${nm(s, pid)} 設立了一間服務處`);
         updateLongestRoad(s);
       } else if (kind === 'city') {
-        if (!validCityVertices(s, pid).includes(a.at)) fail('這裡不能升級城市');
+        if (!validCityVertices(s, pid).includes(a.at)) fail('這裡不能升級競選總部');
         pay(s, pid, COST.city);
         enterBuildPhase(s);
         s.buildings[a.at] = { owner: pid, type: 'city' };
         P.pieces.city--;
         P.pieces.settlement++;
-        log(s, `${nm(s, pid)} 將村莊升級為城市`);
+        log(s, `${nm(s, pid)} 將服務處升級為競選總部`);
       } else fail('未知的建築');
       break;
     }
@@ -523,22 +524,22 @@ export function applyAction(s, pid, a) {
 
     case 'moveRobber': {
       requireTurn();
-      if (!s.pending || s.pending.type !== 'robber') fail('現在不能移動強盜');
+      if (!s.pending || s.pending.type !== 'robber') fail('現在不能移動黑函');
       const hex = a.hex;
-      if (!Number.isInteger(hex) || hex < 0 || hex >= geo(s).hexes.length) fail('無效的地塊');
-      if (hex === s.board.robber) fail('強盜必須移到其他地塊');
+      if (!Number.isInteger(hex) || hex < 0 || hex >= geo(s).hexes.length) fail('無效的選區');
+      if (hex === s.board.robber) fail('黑函必須移到其他選區');
       s.board.robber = hex;
       const h = s.board.hexes[hex];
-      log(s, `🦹 ${nm(s, pid)} 將強盜移到 ${RES_ICON[h.resource]}${h.number ? ` ${h.number}` : ''}`);
+      log(s, `🕵️ ${nm(s, pid)} 將黑函投向 ${RES_ICON[h.resource]}${h.number ? ` ${h.number}` : ''}`);
       afterRobberMoved(s, pid);
       break;
     }
 
     case 'steal': {
       requireTurn();
-      if (!s.pending || s.pending.type !== 'steal') fail('現在不能搶奪');
+      if (!s.pending || s.pending.type !== 'steal') fail('現在不能挖角');
       if (!s.pending.candidates.includes(a.target)) fail('無效的目標');
-      if (!RES.includes(a.resource)) fail('請選擇要搶奪的資源');
+      if (!RES.includes(a.resource)) fail('請選擇要挖角的資源');
       if (!(s.players[a.target].resources[a.resource] > 0)) fail('對方沒有這種資源');
       steal(s, pid, a.target, a.resource);
       s.pending = null;
@@ -547,21 +548,21 @@ export function applyAction(s, pid, a) {
 
     case 'buyDev': {
       requireBuild();
-      if (!s.deck.length) fail('發展卡已售完');
+      if (!s.deck.length) fail('錦囊卡已售完');
       pay(s, pid, COST.dev);
       enterBuildPhase(s);
       const type = s.deck.pop();
       P.dev.push({ type, turn: s.turn });
-      log(s, `${nm(s, pid)} 購買了一張發展卡`);
+      log(s, `${nm(s, pid)} 購買了一張錦囊卡`);
       break;
     }
 
     case 'playDev': {
       requireTurn();
-      if (s.phase !== 'play') fail('現在不能使用發展卡');
+      if (s.phase !== 'play') fail('現在不能使用錦囊卡');
       if (s.pending) fail('請先完成目前的步驟');
-      if (s.devPlayed) fail('每回合只能使用一張發展卡');
-      if (a.card === 'knight' && !robberNearOwn(s, pid)) fail('強盜必須在你的村莊或城市旁邊才能使用騎士');
+      if (s.devPlayed) fail('每回合只能使用一張錦囊卡');
+      if (a.card === 'knight' && !robberNearOwn(s, pid)) fail('黑函必須在你的服務處或競選總部旁邊才能使用樁腳');
       const idx = P.dev.findIndex((c) => c.type === a.card && c.type !== 'vp' && c.turn < s.turn);
       if (idx < 0) fail('你沒有可以使用的這種卡（本回合購買的卡不能使用）');
       if (a.card === 'yearOfPlenty') {
@@ -569,9 +570,9 @@ export function applyAction(s, pid, a) {
         if (!Array.isArray(list) || list.length !== 2 || !list.every((r) => RES.includes(r))) fail('請選擇 2 種資源');
         const want = emptyHand();
         list.forEach((r) => want[r]++);
-        if (!canAfford(s.bank, want)) fail('銀行資源不足');
+        if (!canAfford(s.bank, want)) fail('公庫資源不足');
         for (const r of RES) if (want[r]) give(s, pid, r, want[r]);
-        log(s, `✨ ${nm(s, pid)} 使用豐收之年，獲得 ${fmtHand(want)}`);
+        log(s, `🍽️ ${nm(s, pid)} 使用募款餐會，獲得 ${fmtHand(want)}`);
       } else if (a.card === 'monopoly') {
         if (!RES.includes(a.resource)) fail('請選擇資源');
         let got = 0;
@@ -581,17 +582,17 @@ export function applyAction(s, pid, a) {
           p.resources[a.resource] = 0;
         });
         P.resources[a.resource] += got;
-        log(s, `💰 ${nm(s, pid)} 使用壟斷，收走所有${RES_NAME[a.resource]}（共 ${got} 張）`);
+        log(s, `📺 ${nm(s, pid)} 使用媒體壟斷，收走所有${RES_NAME[a.resource]}（共 ${got} 張）`);
       } else if (a.card === 'knight') {
         P.knights++;
-        log(s, `⚔️ ${nm(s, pid)} 使用騎士`);
+        log(s, `👥 ${nm(s, pid)} 使用樁腳`);
         updateLargestArmy(s, pid);
         s.pending = { type: 'robber' };
       } else if (a.card === 'roadBuilding') {
         const remaining = Math.min(2, P.pieces.road);
-        log(s, `🛠️ ${nm(s, pid)} 使用道路建設`);
+        log(s, `📢 ${nm(s, pid)} 使用掃街拜票`);
         if (remaining > 0 && validRoadEdges(s, pid).length) s.pending = { type: 'roadBuilding', remaining };
-      } else fail('未知的發展卡');
+      } else fail('未知的錦囊卡');
       P.dev.splice(idx, 1);
       s.devPlayed = true;
       break;
@@ -610,11 +611,11 @@ export function applyAction(s, pid, a) {
       if (!RES.includes(g) || !RES.includes(get) || g === get) fail('無效的交易');
       const ratio = tradeRatios(s, pid)[g];
       if (P.resources[g] < ratio) fail(`需要 ${ratio} 張${RES_NAME[g]}`);
-      if (s.bank[get] < 1) fail('銀行沒有這種資源了');
+      if (s.bank[get] < 1) fail('公庫沒有這種資源了');
       P.resources[g] -= ratio;
       s.bank[g] += ratio;
       give(s, pid, get, 1);
-      log(s, `${nm(s, pid)} 與銀行交易 ${RES_ICON[g]}×${ratio} → ${RES_ICON[get]}×1`);
+      log(s, `${nm(s, pid)} 與公庫交易 ${RES_ICON[g]}×${ratio} → ${RES_ICON[get]}×1`);
       break;
     }
 
@@ -672,7 +673,7 @@ export function applyAction(s, pid, a) {
         const n = s.players.length;
         const queue = Array.from({ length: n - 1 }, (_, k) => (s.current + 1 + k) % n);
         s.pending = { type: 'specialBuild', queue };
-        log(s, '🔨 特別建設階段：其他玩家依序可以建造或購買發展卡（不能交易）');
+        log(s, '🔨 特別建設階段：其他玩家依序可以建造或購買錦囊卡（不能交易）');
       } else {
         nextTurn(s);
       }
@@ -703,7 +704,7 @@ export function applyAction(s, pid, a) {
   s.seq++;
 }
 
-// 資源卡公開；依觀看者隱藏其他玩家的發展卡（遊戲結束後全部公開）
+// 資源卡公開；依觀看者隱藏其他玩家的錦囊卡（遊戲結束後全部公開）
 export function viewFor(s, viewer) {
   const v = JSON.parse(JSON.stringify(s));
   v.deckCount = s.deck.length;

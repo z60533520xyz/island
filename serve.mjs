@@ -34,5 +34,5 @@ http.createServer((req, res) => {
     res.end(data);
   });
 }).listen(port, () => {
-  console.log(`卡坦島：http://localhost:${port}/`);
+  console.log(`大選戰：http://localhost:${port}/`);
 });
