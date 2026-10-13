@@ -43,8 +43,10 @@ for (const n of [3, 6]) {
   renderAll();
   applyAction(s, 0, { type: 'roll' });
   renderAll();
+  const saved = s.pending; s.pending = null; // 棄牌等強制對話框會蓋過新聞卡
   for (const id of ['debate', 'tactical', 'clarify']) { applyEvent(s, id); app.eventSeen = -1; renderAll(); }
   if (!els['#modal'].innerHTML.includes('時事新聞')) throw new Error('新聞卡沒有顯示');
+  s.pending = saved;
   s.pending = { type: 'discard', need: { 1: 7 } }; renderAll();
   s.pending = { type: 'robber' }; renderAll();
   s.pending = { type: 'steal', candidates: [1, 2] }; renderAll();

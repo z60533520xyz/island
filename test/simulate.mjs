@@ -306,7 +306,7 @@ assert.equal(GEO.coastal.length, 30);
 // ---- 陣營技能
 {
   const mk = (n = 6, opts = {}) => {
-    const s = createGame(Array.from({ length: n }, (_, i) => ({ name: `P${i}` })), { shuffleSeats: false, ...opts });
+    const s = createGame(Array.from({ length: n }, (_, i) => ({ name: `P${i}` })), { shuffleSeats: false, events: false, ...opts });
     s.phase = 'play'; s.turn = 1; s.rolled = true;
     return s;
   };

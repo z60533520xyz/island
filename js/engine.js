@@ -2,8 +2,8 @@
 import { geoFor, generateBoard, shuffle } from './geometry.js';
 
 export const RES = ['wood', 'brick', 'sheep', 'wheat', 'ore'];
-export const RES_NAME = { wood: '文宣', brick: '看板', sheep: '志工', wheat: '便當', ore: '資金' };
-export const RES_ICON = { wood: '📄', brick: '🪧', sheep: '🙋', wheat: '🍱', ore: '💰', desert: '🥀' };
+export const RES_NAME = { wood: '文宣', brick: '旗幟', sheep: '志工', wheat: '便當', ore: '資金' };
+export const RES_ICON = { wood: '📗', brick: '🚩', sheep: '👕', wheat: '🍱', ore: '💰', desert: '🥀' };
 export const DEV_NAME = { knight: '樁腳', vp: '民調領先', roadBuilding: '掃街拜票', yearOfPlenty: '募款餐會', monopoly: '媒體壟斷' };
 export const DEV_DESC = {
   knight: '動員樁腳：移動黑函並挖角一張資源（黑函須在你的服務處或競選總部旁才能使用）',
@@ -26,8 +26,8 @@ export const MAX_PLAYERS = 6;
 export const FACTIONS = [
   { id: 'blue', color: '藍', title: '黑金', skill: '💰資金與公庫交易 2:1；黑函事件棄牌時資金不計入手牌（藏錢）' },
   { id: 'green', color: '綠', title: '青鳥', skill: '出征：移動黑函時可以挖角 2 張' },
-  { id: 'teal', color: '青', title: '小草', skill: '小額捐款：自己擲骰後若沒拿到任何資源，從公庫獲得 1 張🙋志工' },
-  { id: 'yellow', color: '黃', title: '社運', skill: '掃街路線只需 📄文宣×1' },
+  { id: 'teal', color: '青', title: '小草', skill: '小額捐款：自己擲骰後若沒拿到任何資源，從公庫獲得 1 張👕志工' },
+  { id: 'yellow', color: '黃', title: '社運', skill: '掃街路線只需 📗文宣×1' },
   { id: 'orange', color: '橘', title: '合縱連橫', skill: '所有資源與公庫交易 3:1' },
   { id: 'red', color: '紅', title: '統戰', skill: '境外金援：自己擲出雙數（點數總和為偶數）時從公庫獲得 1 張💰資金；但不能與其他玩家交易' },
 ];
@@ -359,7 +359,7 @@ function foreignFunding(s, pid) {
 function smallDonation(s, pid, gained) {
   if (factionOf(s, pid) !== 'teal' || gained || s.bank.sheep < 1) return;
   give(s, pid, 'sheep', 1);
-  log(s, `🌱 ${nm(s, pid)} 的小額捐款：獲得 🙋×1`);
+  log(s, `🌱 ${nm(s, pid)} 的小額捐款：獲得 👕×1`);
 }
 
 export function fmtHand(h) {
@@ -415,19 +415,19 @@ function nextTurn(s) {
 }
 
 // ---------------------------------------------------------------- 時事新聞
-// 取材自 2022 台北市長選舉期間廣泛報導的議題；只用議題，不涉及任何真實人物。
+// 取材自 2026 台北市長選戰期間廣泛報導、雙方都能一笑置之的話題；效果抽象化，不對任何人做事實陳述。
 // 「全體獲得資源」的事件五種資源各一張，機率平均。
 export const EVENTS = [
-  { id: 'debate', title: '電視辯論會', desc: '每位候選人獲得 1 張📄文宣' },
-  { id: 'billboard', title: '看板大戰', desc: '每位候選人獲得 1 張🪧看板' },
-  { id: 'market', title: '菜市場掃街', desc: '每位候選人獲得 1 張🙋志工' },
-  { id: 'rally', title: '造勢晚會', desc: '每位候選人獲得 1 張🍱便當' },
+  { id: 'debate', title: '電視辯論會', desc: '每位候選人獲得 1 張📗文宣' },
+  { id: 'billboard', title: '洋流來襲', desc: '每位候選人獲得 1 張🚩旗幟' },
+  { id: 'market', title: '萬人競總成立大會', desc: '每位候選人獲得 1 張👕志工' },
+  { id: 'rally', title: '福德宮聖誕晚宴', desc: '每位候選人獲得 1 張🍱便當' },
   { id: 'donation', title: '小額募款熱潮', desc: '每位候選人獲得 1 張💰資金' },
   { id: 'policy', title: '政見發表會', desc: '每位候選人獲得 1 張自己目前最少的資源' },
-  { id: 'tactical', title: '棄保效應', desc: '得票最高者交 1 張（自己最多的資源）給得票最低者' },
-  { id: 'viral', title: '網路聲量爆紅', desc: '得票最低者獲得自己最少的兩種資源各 1 張' },
-  { id: 'ghost', title: '幽靈人口查辦', desc: '資源超過 7 張的候選人棄掉 2 張（從最多的資源開始）' },
-  { id: 'clarify', title: '澄清記者會', desc: '黑函回到艱困選區' },
+  { id: 'tactical', title: '消失的甘蔗', desc: '得票最高者忘了帶走祝福：交 1 張（自己最多的資源）給得票最低者，倒吃甘蔗' },
+  { id: 'viral', title: '街頭民調大逆轉', desc: '得票最低者獲得自己最少的兩種資源各 1 張' },
+  { id: 'ghost', title: '政治獻金查帳', desc: '資源超過 7 張的候選人棄掉 2 張（從最多的資源開始）' },
+  { id: 'clarify', title: '高格調選戰', desc: '雙方承諾不打身世牌：黑函回到艱困選區' },
 ];
 
 const GAIN_EVENTS = { debate: 'wood', billboard: 'brick', market: 'sheep', rally: 'wheat', donation: 'ore' };
