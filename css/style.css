@@ -210,8 +210,12 @@ input:focus { outline: 2px solid #e8b4ad; border-color: var(--accent); }
 #board .spot:hover { fill: #ffe066; }
 #board .spot-edge { cursor: pointer; }
 #board .spot-edge .hit { stroke: transparent; stroke-width: 26; }
-#board .spot-edge .vis { stroke: rgba(255, 255, 255, .9); stroke-width: 9; stroke-linecap: round; stroke-dasharray: 4 10; animation: pulse 1.1s ease-in-out infinite; }
-#board .spot-edge:hover .vis { stroke: #ffe066; stroke-dasharray: none; }
+#board .spot-edge .vis-outline { stroke: #fff; stroke-width: 18; stroke-linecap: round; filter: drop-shadow(0 0 3px rgba(0, 0, 0, .6)); }
+#board .spot-edge .vis { stroke-width: 10; stroke-linecap: round; }
+#board .spot-edge .vis, #board .spot-edge .vis-outline { animation: pulse-road 1.1s ease-in-out infinite; }
+#board .spot-edge:hover .vis, #board .spot-edge:hover .vis-outline { animation: none; opacity: 1; }
+#board .spot-edge:hover .vis-outline { stroke: #ffe066; filter: drop-shadow(0 0 6px #ffe066); }
+@keyframes pulse-road { 50% { opacity: .5; } }
 #board .spot-hex { fill: rgba(255, 255, 255, .12); stroke: #fff; stroke-width: 4; stroke-dasharray: 10 8; cursor: pointer; }
 #board .spot-hex:hover { fill: rgba(255, 224, 102, .45); }
 @keyframes pulse { 50% { opacity: .55; } }

@@ -137,12 +137,16 @@ function boardSVG(s, t) {
   }
 
   // 可點選目標
+  const myColor = s.players[app.me]?.color || '#fff';
   for (const hid of t.hexes || []) {
     out.push(`<polygon points="${hexPoints(geo(s).hexes[hid], 0.9)}" class="spot-hex" data-hex="${hid}"/>`);
   }
   for (const eid of t.edges || []) {
     const [a, b] = geo(s).edges[eid].v.map((v) => geo(s).vertices[v]);
-    out.push(`<g class="spot-edge" data-edge="${eid}"><line x1="${a.x * S}" y1="${a.y * S}" x2="${b.x * S}" y2="${b.y * S}" class="hit"/><line x1="${(a.x * 0.8 + b.x * 0.2) * S}" y1="${(a.y * 0.8 + b.y * 0.2) * S}" x2="${(a.x * 0.2 + b.x * 0.8) * S}" y2="${(a.y * 0.2 + b.y * 0.8) * S}" class="vis"/></g>`);
+    // 以自己的顏色畫出「預覽道路」，外加白色外框，任何地塊上都看得清楚
+    const k = 0.18;
+    const seg = `x1="${(a.x + (b.x - a.x) * k) * S}" y1="${(a.y + (b.y - a.y) * k) * S}" x2="${(b.x + (a.x - b.x) * k) * S}" y2="${(b.y + (a.y - b.y) * k) * S}"`;
+    out.push(`<g class="spot-edge" data-edge="${eid}"><line x1="${a.x * S}" y1="${a.y * S}" x2="${b.x * S}" y2="${b.y * S}" class="hit"/><line ${seg} class="vis-outline"/><line ${seg} class="vis" stroke="${myColor}"/></g>`);
   }
   for (const vid of t.vertices || []) {
     const v = geo(s).vertices[vid];
