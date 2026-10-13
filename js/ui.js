@@ -131,8 +131,8 @@ function boardSVG(s, t) {
     const v = geo(s).vertices[vid];
     const color = s.players[b.owner].color;
     const shape = b.type === 'city'
-      ? '-22,14 22,14 22,-4 4,-4 4,-14 -9,-27 -22,-14'
-      : '-14,10 14,10 14,-5 0,-18 -14,-5';
+      ? '-31,20 31,20 31,-6 6,-6 6,-20 -13,-38 -31,-20'
+      : '-21,15 21,15 21,-8 0,-27 -21,-8';
     out.push(`<polygon points="${shape}" transform="translate(${v.x * S},${v.y * S})" class="building" fill="${color}"/>`);
   }
 
