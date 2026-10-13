@@ -414,7 +414,9 @@ assert.equal(GEO.coastal.length, 30);
     if (m) gainCount[m[1]] = (gainCount[m[1]] || 0) + 1;
   }
   assert.equal(Object.keys(gainCount).length, 5);
-  assert.ok(Object.values(gainCount).every((n) => n === 1), '資源事件平均分布');
+  assert.ok(Object.values(gainCount).every((n) => n === 2), '資源事件平均分布（每種兩張）');
+  assert.equal(EVENTS.length, 20);
+  assert.equal(new Set(EVENTS.map((e) => e.id)).size, 20, '事件 id 不重複');
 
   // 對子觸發、非對子不觸發、關閉選項不觸發
   let s = mk();
@@ -468,6 +470,28 @@ assert.equal(GEO.coastal.length, 30);
   assert.equal(s.players[1].resources.ore, 0);
   assert.equal(s.players[2].resources.ore, 1);
   assert.equal(handTotal(s.players[2].resources), 1, '沒有資源的人不用傳');
+  // 颱風：4 張以上棄 1
+  s = mk(); giveRes(s, 0, 'wood', 3); giveRes(s, 0, 'ore', 1); giveRes(s, 1, 'wood', 3);
+  applyEvent(s, 'typhoon');
+  assert.equal(s.players[0].resources.wood, 2);
+  assert.equal(s.players[1].resources.wood, 3);
+  // 失言風波：最高得票者棄 1
+  s = mk(); s.buildings[0] = { owner: 2, type: 'city' }; giveRes(s, 2, 'wheat', 2); giveRes(s, 0, 'wheat', 2);
+  applyEvent(s, 'gaffe');
+  assert.equal(s.players[2].resources.wheat, 1);
+  assert.equal(s.players[0].resources.wheat, 2);
+  // 均富：最多給最少
+  s = mk(); giveRes(s, 1, 'brick', 4); giveRes(s, 0, 'ore', 1); giveRes(s, 2, 'ore', 2);
+  applyEvent(s, 'welfare');
+  assert.equal(s.players[1].resources.brick, 3);
+  assert.equal(s.players[0].resources.brick, 1);
+  // 黑函再現：移到別的非艱困選區
+  for (let k = 0; k < 20; k++) {
+    s = mk(); const before = s.board.robber;
+    applyEvent(s, 'smear');
+    assert.notEqual(s.board.robber, before);
+    assert.notEqual(s.board.hexes[s.board.robber].resource, 'desert');
+  }
   // 牌庫用完重洗
   s = mk(); s.eventDeck = [];
   restore = forceDice(5, 5); applyAction(s, 0, { type: 'roll' }); restore();

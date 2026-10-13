@@ -8,7 +8,7 @@ import {
 
 const S = 100; // 1 單位 = 100 SVG 像素
 const TILE_COLOR = {
-  wood: '#2f7d32', brick: '#c0582f', sheep: '#9ccc65', wheat: '#f2c94c', ore: '#8d939c', desert: '#dcc79a',
+  wood: '#2f7d32', brick: '#c0582f', sheep: '#7cb8e0', wheat: '#f2c94c', ore: '#8d939c', desert: '#dcc79a',
 };
 const DICE = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
 
