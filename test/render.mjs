@@ -15,7 +15,7 @@ let renders = 0;
 // 3 人基本地圖、6 人擴充地圖
 for (const n of [3, 6]) {
   app.online = [];
-  const s = createGame([{ name: '<b>A</b>' }, ...Array.from({ length: n - 1 }, (_, i) => ({ name: `P${i}` }))]);
+  const s = createGame([{ name: '<b>A</b>' }, ...Array.from({ length: n - 1 }, (_, i) => ({ name: `P${i}` }))], { randomFactions: false });
   function renderAll() {
     for (let me = 0; me < n; me++) {
       app.me = me;

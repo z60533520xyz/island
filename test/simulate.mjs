@@ -5,7 +5,7 @@ import { GEO, geoFor } from '../js/geometry.js';
 import {
   RES, COST, applyAction, createGame, canAfford, handTotal, tradeRatios, viewFor, victoryPoints,
   validRoadEdges, validSettlementVertices, validCityVertices, playableDev, longestRoadFor,
-  geo, bankSize, robberNearOwn, EVENTS, applyEvent, costFor, tradeRatios as ratiosOf, discardableCount, FACTIONS,
+  geo, bankSize, robberNearOwn, COLORS, EVENTS, applyEvent, costFor, tradeRatios as ratiosOf, discardableCount, FACTIONS,
 } from '../js/engine.js';
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -181,7 +181,7 @@ assert.equal(GEO.coastal.length, 30);
 {
   const L = geoFor('large');
   assert.equal(L.hexes.length, 30);
-  const s = createGame(Array.from({ length: 6 }, (_, i) => ({ name: `P${i}` })));
+  const s = createGame(Array.from({ length: 6 }, (_, i) => ({ name: `P${i}` })), { factions: false });
   assert.equal(s.board.layout, 'large');
   assert.equal(s.board.hexes.filter((h) => h.resource === 'desert').length, 2);
   assert.ok(s.board.hexes.every((h) => (h.resource === 'desert') === (h.number == null)), '沙漠沒有數字，其他都有');
@@ -210,7 +210,7 @@ assert.equal(GEO.coastal.length, 30);
   assert.equal(s.pending, null);
   assert.equal(s.current, 1);
   // 關閉選項時直接換人
-  const t2 = createGame(Array.from({ length: 5 }, (_, i) => ({ name: `P${i}` })), { specialBuild: false });
+  const t2 = createGame(Array.from({ length: 5 }, (_, i) => ({ name: `P${i}` })), { specialBuild: false, factions: false });
   while (t2.phase === 'setup') {
     const me = t2.current;
     if (t2.setup.stage === 'settlement') applyAction(t2, me, { type: 'build', kind: 'settlement', at: validSettlementVertices(t2, me)[0] });
@@ -239,7 +239,7 @@ assert.equal(GEO.coastal.length, 30);
 
 // ---- 強盜：自選對象與資源
 {
-  const s = createGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }], { shuffleSeats: false });
+  const s = createGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }], { shuffleSeats: false, factions: false });
   s.phase = 'play'; s.turn = 1; s.rolled = true;
   const hex = 4;
   const [v1] = geo(s).hexes[hex].vertices;
@@ -262,7 +262,7 @@ assert.equal(GEO.coastal.length, 30);
 
 // ---- 交易階段 → 建設階段
 {
-  const s = createGame([{ name: 'A' }, { name: 'B' }], { shuffleSeats: false });
+  const s = createGame([{ name: 'A' }, { name: 'B' }], { shuffleSeats: false, factions: false });
   while (s.phase === 'setup') {
     const me = s.current;
     if (s.setup.stage === 'settlement') applyAction(s, me, { type: 'build', kind: 'settlement', at: validSettlementVertices(s, me)[0] });
@@ -287,7 +287,7 @@ assert.equal(GEO.coastal.length, 30);
 
 // ---- 騎士卡：強盜須在自己的建築旁
 {
-  const s = createGame([{ name: 'A' }, { name: 'B' }], { shuffleSeats: false });
+  const s = createGame([{ name: 'A' }, { name: 'B' }], { shuffleSeats: false, factions: false });
   s.phase = 'play'; s.turn = 2;
   s.players[0].dev.push({ type: 'knight', turn: 1 });
   const near = geo(s).hexes[4];
@@ -303,10 +303,29 @@ assert.equal(GEO.coastal.length, 30);
   assert.equal(s.players[0].knights, 1);
 }
 
+// ---- 陣營隨機分配
+{
+  const seenFirst = new Set();
+  const seenIn4 = new Set();
+  for (let k = 0; k < 300; k++) {
+    const s = createGame(['A', 'B', 'C', 'D'].map((name) => ({ name })));
+    const fs4 = s.players.map((p) => p.faction);
+    assert.equal(new Set(fs4).size, 4, '陣營不重複');
+    s.players.forEach((p) => assert.equal(p.color, COLORS[FACTIONS.findIndex((f) => f.id === p.faction)], '顏色跟著陣營'));
+    seenFirst.add(fs4[0]);
+    fs4.forEach((f) => seenIn4.add(f));
+  }
+  assert.equal(seenFirst.size, 6, '先手可能是任何陣營');
+  assert.equal(seenIn4.size, 6, '4 人局也可能抽到任何陣營');
+  // 關閉陣營技能時，顏色仍隨機但沒有陣營
+  const off = createGame(['A', 'B'].map((name) => ({ name })), { factions: false });
+  assert.ok(off.players.every((p) => p.faction === null && COLORS.includes(p.color)));
+}
+
 // ---- 陣營技能
 {
   const mk = (n = 6, opts = {}) => {
-    const s = createGame(Array.from({ length: n }, (_, i) => ({ name: `P${i}` })), { shuffleSeats: false, events: false, ...opts });
+    const s = createGame(Array.from({ length: n }, (_, i) => ({ name: `P${i}` })), { shuffleSeats: false, events: false, randomFactions: false, ...opts });
     s.phase = 'play'; s.turn = 1; s.rolled = true;
     return s;
   };

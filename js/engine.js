@@ -120,6 +120,10 @@ export function createGame(seats, opts = {}) {
   // 玩家順序（= 回合順序、顏色）；seat 記錄他在大廳的座位，讓房主對應連線
   const seatOrder = [...Array(n).keys()];
   if (options.shuffleSeats) shuffle(seatOrder);
+  // 顏色／陣營與回合順序無關：從全部陣營中隨機抽出 n 個，再隨機分給玩家
+  // （randomFactions: false 只給測試用，依序分配）
+  const factionPick = [...FACTIONS.keys()];
+  if (options.randomFactions ?? true) shuffle(factionPick);
   const layout = layoutFor(n);
   const set = SETS[layout];
   const deck = shuffle(Object.entries(set.deck).flatMap(([t, k]) => Array(k).fill(t)));
@@ -132,8 +136,8 @@ export function createGame(seats, opts = {}) {
     players: seatOrder.map((seatIdx, i) => ({
       name: seats[seatIdx].name,
       seat: seatIdx,
-      color: COLORS[i],
-      faction: options.factions ? FACTIONS[i].id : null,
+      color: COLORS[factionPick[i]],
+      faction: options.factions ? FACTIONS[factionPick[i]].id : null,
       resources: emptyHand(),
       dev: [],
       knights: 0,
@@ -161,7 +165,7 @@ export function createGame(seats, opts = {}) {
     lastEvent: null,
   };
   log(s, `${options.shuffleSeats ? '🎲 隨機決定順序' : '依座位順序'}：${s.players.map((p) => p.name).join(' → ')}`);
-  if (options.factions) log(s, `陣營：${s.players.map((p, i) => `${p.name}「${FACTIONS[i].title}」`).join('、')}`);
+  if (options.factions) log(s, `🎲 隨機抽出陣營：${s.players.map((p, i) => `${p.name}「${FACTIONS[factionPick[i]].title}」`).join('、')}`);
   log(s, `遊戲開始！${layout === 'large' ? '5~6 人大地圖。' : ''}每輪依序設立 1 間服務處 + ${options.setupRoads} 條掃街路線，共兩輪（第二輪順序相反）。`);
   return s;
 }

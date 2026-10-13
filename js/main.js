@@ -79,7 +79,7 @@ function renderLobby() {
   $('#lobby-players').innerHTML = Array.from({ length: MAX_PLAYERS }, (_, i) => {
     const p = players[i];
     if (!p) return '<li class="empty">等待玩家加入…</li>';
-    return `<li style="--c:${COLORS[i]}"><span class="pdot"></span><b>${esc(p.name)}</b>
+    return `<li style="--c:#b8b0a2"><span class="pdot"></span><b>${esc(p.name)}</b>
       ${i === 0 ? '<span class="tag">房主</span>' : ''}${i === app.me ? '<span class="tag you">你</span>' : ''}</li>`;
   }).join('');
   const host = app.role === 'host';
@@ -95,8 +95,8 @@ function renderLobby() {
   fo.disabled = !host;
   const n = Math.max(players.length, 2);
   $('#faction-list').hidden = !opts.factions;
-  $('#faction-list').innerHTML = FACTIONS.slice(0, n).map((f, i) => `<li style="--c:${COLORS[i]}"><span class="ftag">${f.color}・${f.title}</span><span>${esc(f.skill)}</span></li>`).join('')
-    + (opts.shuffleSeats ? '<li class="muted">開始時隨機分配順序，也就是隨機分配陣營</li>' : '');
+  $('#faction-list').innerHTML = FACTIONS.map((f, i) => `<li style="--c:${COLORS[i]}"><span class="ftag">${f.color}・${f.title}</span><span>${esc(f.skill)}</span></li>`).join('')
+    + `<li class="muted">開始時從 6 個陣營中隨機抽出 ${n} 個，隨機分給每位玩家（與回合順序無關）</li>`;
   const ss = $('#opt-shuffle-seats');
   ss.checked = !!opts.shuffleSeats;
   ss.disabled = !host;
