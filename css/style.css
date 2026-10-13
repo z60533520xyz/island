@@ -168,7 +168,7 @@ input:focus { outline: 2px solid #e8b4ad; border-color: var(--accent); }
   border: 1px solid rgba(0, 0, 0, .1);
 }
 .rcard.wood { background: #d7ecd2; } .rcard.brick { background: #f5d5c6; } .rcard.sheep { background: #dcecf8; }
-.rcard.wheat { background: #fbefc3; } .rcard.ore { background: #e2e4e8; }
+.rcard.wheat { background: #e2e4e8; } .rcard.ore { background: #fbefc3; }
 .rcard.zero { opacity: .45; }
 .ricon { font-size: 20px; }
 .rcount { font-size: 18px; font-weight: 700; }
