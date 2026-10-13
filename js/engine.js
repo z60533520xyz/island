@@ -29,7 +29,7 @@ export const FACTIONS = [
   { id: 'teal', color: '青', title: '小草', skill: '小額捐款：自己擲骰後若沒拿到任何資源，從公庫獲得 1 張🙋志工' },
   { id: 'yellow', color: '黃', title: '社運', skill: '掃街路線只需 📄文宣×1' },
   { id: 'orange', color: '橘', title: '合縱連橫', skill: '所有資源與公庫交易 3:1' },
-  { id: 'red', color: '紅', title: '統戰', skill: '境外金援：每次自己擲骰時從公庫獲得 1 張💰資金；但不能與其他玩家交易' },
+  { id: 'red', color: '紅', title: '統戰', skill: '境外金援：自己擲出雙數（點數總和為偶數）時從公庫獲得 1 張💰資金；但不能與其他玩家交易' },
 ];
 
 export function factionOf(s, pid) {
@@ -345,9 +345,9 @@ function produce(s, sum) {
   return gains;
 }
 
-// 統戰：每次自己擲骰，獲得 1 張境外資金
+// 統戰：自己擲出雙數（總和為偶數）時，獲得 1 張境外資金
 function foreignFunding(s, pid) {
-  if (factionOf(s, pid) !== 'red' || s.bank.ore < 1) return;
+  if (factionOf(s, pid) !== 'red' || (s.dice[0] + s.dice[1]) % 2 || s.bank.ore < 1) return;
   give(s, pid, 'ore', 1);
   log(s, `🧧 ${nm(s, pid)} 獲得境外金援：💰×1`);
 }

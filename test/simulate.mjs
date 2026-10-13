@@ -343,7 +343,15 @@ assert.equal(GEO.coastal.length, 30);
   Math.random = (() => { const q = [0.01, 0.01]; return () => q.shift() ?? realRandom(); })();
   applyAction(s, 5, { type: 'roll' });
   Math.random = realRandom;
-  assert.equal(s.players[5].resources.ore, 1, '境外金援');
+  assert.equal(s.players[5].resources.ore, 1, '擲出雙數（2）獲得境外金援');
+  // 擲出單數（1+2=3）不觸發
+  const s2 = mk();
+  s2.current = 5; s2.rolled = false;
+  Math.random = (() => { const q = [0.01, 0.2]; return () => q.shift() ?? realRandom(); })();
+  applyAction(s2, 5, { type: 'roll' });
+  Math.random = realRandom;
+  assert.equal(s2.dice[0] + s2.dice[1], 3);
+  assert.equal(s2.players[5].resources.ore, 0, '單數不觸發');
   giveRes(s, 5, 'wood', 2);
   expectThrow(() => applyAction(s, 5, { type: 'tradeOffer', give: { wood: 1 }, want: { ore: 1 } }));
   s.current = 0;
