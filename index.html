@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>卡坦島 Online</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏝️</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <!-- 首頁 -->
+  <section id="screen-home" class="screen" hidden>
+    <div class="home">
+      <h1>🏝️ 卡坦島 <small>Online</small></h1>
+      <p class="sub">開房間、傳連結給朋友，透過瀏覽器點對點連線一起玩（2~6 人，5~6 人自動使用擴充大地圖）</p>
+
+      <div class="card">
+        <label for="name">你的名字</label>
+        <input id="name" maxlength="16" placeholder="輸入暱稱" autocomplete="nickname">
+
+        <div id="home-invite" class="invite-note" hidden>你受邀加入房間 <b id="home-invite-code"></b></div>
+
+        <div class="home-actions">
+          <div class="home-col">
+            <h3>建立房間</h3>
+            <p class="muted">你將成為房主，遊戲在你的瀏覽器上運行。</p>
+            <button id="btn-create" class="primary">建立新房間</button>
+          </div>
+          <div class="home-col">
+            <h3>加入房間</h3>
+            <input id="join-code" maxlength="8" placeholder="房間代碼" autocomplete="off" style="text-transform:uppercase">
+            <button id="btn-join">加入</button>
+          </div>
+        </div>
+
+        <div id="resume" class="resume" hidden>
+          <div>
+            <b>恢復上次的對局</b>
+            <div id="resume-info" class="muted"></div>
+          </div>
+          <div class="btnrow">
+            <button id="btn-resume" class="primary small">恢復</button>
+            <button id="btn-discard-save" class="small">捨棄</button>
+          </div>
+        </div>
+      </div>
+
+      <details class="rules card">
+        <summary>規則速查</summary>
+        <ul>
+          <li><b>目標：</b>率先在自己的回合達到 <b>10 分</b>。村莊 1 分、城市 2 分、最長道路（≥5）2 分、最大騎士團（≥3）2 分、勝利分數卡 1 分。</li>
+          <li><b>準備：</b>依順序各放 1 村莊 + 1 道路（房主可改成 2 條），再反序各放一次；第二座村莊立即獲得周圍資源。</li>
+          <li><b>回合：</b>擲骰 → 點數對應的地塊產出資源給相鄰的村莊（1 張）與城市（2 張）→ 建造／交易 → 結束回合。</li>
+          <li><b>擲出 7：</b>手牌超過 7 張者棄掉一半；當前玩家移動強盜並向該地塊旁的一位玩家搶 1 張牌。強盜所在地塊不產出。</li>
+          <li><b>建造：</b>道路 🌲🧱、村莊 🌲🧱🐑🌾、城市 🌾×2 ⛰️×3、發展卡 🐑🌾⛰️。村莊間至少相隔兩段路。</li>
+          <li><b>交易：</b>銀行 4:1，擁有港口可 3:1 或 2:1；也可以向其他玩家提出交易。</li>
+          <li><b>發展卡：</b>每回合最多使用一張，當回合買的卡不能使用。</li>
+          <li><b>5~6 人：</b>使用 30 塊地形的大地圖（2 個沙漠、11 個港口），銀行每種資源 24 張、發展卡 34 張。每個回合結束後進入「特別建設階段」，其他玩家依序可以建造或購買發展卡，但不能交易。</li>
+        </ul>
+      </details>
+    </div>
+  </section>
+
+  <!-- 大廳 -->
+  <section id="screen-lobby" class="screen" hidden>
+    <div class="home">
+      <h1>🏝️ 卡坦島 <small>大廳</small></h1>
+      <div class="card">
+        <div class="status" hidden></div>
+        <div class="lobby-code">房間代碼 <b id="lobby-code"></b></div>
+        <div class="invite">
+          <input id="invite-url" readonly>
+          <button data-act="copyInvite">複製邀請連結</button>
+        </div>
+        <ul id="lobby-players" class="lobby-players"></ul>
+        <div class="lobby-options">
+          <label for="opt-setup-roads">準備階段每輪放置道路</label>
+          <select id="opt-setup-roads">
+            <option value="1">1 條（官方規則）</option>
+            <option value="2">2 條（家規）</option>
+          </select>
+        </div>
+        <div class="lobby-options">
+          <label for="opt-special-build">特別建設階段（僅 5~6 人）<small class="muted">：每回合結束後，其他玩家可依序建造</small></label>
+          <input type="checkbox" id="opt-special-build">
+        </div>
+        <p id="lobby-map" class="muted"></p>
+        <p id="lobby-note" class="muted"></p>
+        <div class="btnrow">
+          <button id="btn-leave">離開</button>
+          <button id="btn-start" class="primary" hidden>開始遊戲</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 遊戲 -->
+  <section id="screen-game" class="screen" hidden>
+    <header id="topbar"></header>
+    <div id="conn-banner" class="conn-banner" hidden>
+      與房主的連線中斷。<button id="btn-reconnect" class="small primary">重新連線</button>
+    </div>
+    <main class="layout">
+      <div class="board-wrap">
+        <div id="hint" class="hint"></div>
+        <svg id="board" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <aside class="side">
+        <div id="players" class="players"></div>
+        <div id="trade" class="panel trade" hidden></div>
+        <div id="actions" class="panel actions"></div>
+        <div id="hand" class="panel hand"></div>
+        <div class="panel logpanel">
+          <div id="log" class="log"></div>
+          <form id="chat-form" class="chat-form">
+            <input id="chat-input" maxlength="200" placeholder="聊天…" autocomplete="off">
+            <button>送出</button>
+          </form>
+        </div>
+      </aside>
+    </main>
+  </section>
+
+  <div id="modal" class="modal" hidden></div>
+  <div id="toasts" class="toasts"></div>
+</body>
+</html>

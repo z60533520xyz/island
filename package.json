@@ -1,0 +1,11 @@
+{
+  "name": "catan-island",
+  "version": "1.0.0",
+  "description": "卡坦島網頁版：開房間、邀請好友，透過 WebRTC 點對點連線對戰",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs 8080",
+    "test": "node test/simulate.mjs && node test/render.mjs"
+  }
+}
