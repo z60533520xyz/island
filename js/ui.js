@@ -373,13 +373,17 @@ function fmt(h) {
   return RES.filter((r) => h[r]).map((r) => `${RES_ICON[r]}×${h[r]}`).join(' ') || '（無）';
 }
 
+// 紀錄與聊天：只有內容變動時才重畫，並自動捲到最新一則
+let lastLogHtml = '';
 function renderLog(s) {
   const el = $('#log');
-  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
   const entries = s.log.map((l) => ({ k: l.n, html: `<div class="logline">${esc(l.text)}</div>` }));
   const chats = app.chat.map((c) => ({ k: c.n, html: `<div class="chatline"><span class="pname" style="--c:${c.color}">${esc(c.from)}</span>：${esc(c.text)}</div>` }));
-  el.innerHTML = [...entries, ...chats].sort((a, b) => a.k - b.k).map((x) => x.html).join('');
-  if (atBottom || !app._logInit) { el.scrollTop = el.scrollHeight; app._logInit = true; }
+  const html = [...entries, ...chats].sort((x, y) => x.k - y.k).map((x) => x.html).join('');
+  if (html === lastLogHtml) return;
+  lastLogHtml = html;
+  el.innerHTML = html;
+  el.scrollTop = el.scrollHeight;
 }
 
 // ================================================================= 對話框
