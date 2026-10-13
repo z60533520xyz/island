@@ -87,6 +87,9 @@ function renderLobby() {
   const sel = $('#opt-setup-roads');
   sel.value = String(opts.setupRoads);
   sel.disabled = !host;
+  const ev = $('#opt-events');
+  ev.checked = !!opts.events;
+  ev.disabled = !host;
   const fo = $('#opt-factions');
   fo.checked = !!opts.factions;
   fo.disabled = !host;
@@ -514,6 +517,11 @@ function initHome() {
   $('#opt-setup-roads').addEventListener('change', (e) => {
     if (app.role !== 'host' || app.game) return;
     app.options.setupRoads = Number(e.target.value);
+    hostBroadcast();
+  });
+  $('#opt-events').addEventListener('change', (e) => {
+    if (app.role !== 'host' || app.game) return;
+    app.options.events = e.target.checked;
     hostBroadcast();
   });
   $('#opt-factions').addEventListener('change', (e) => {

@@ -85,7 +85,7 @@ function rand(n) {
 
 // ---------------------------------------------------------------- 建立遊戲
 
-export const DEFAULT_OPTIONS = { setupRoads: 1, specialBuild: true, shuffleSeats: true, factions: true };
+export const DEFAULT_OPTIONS = { setupRoads: 1, specialBuild: true, shuffleSeats: true, factions: true, events: true };
 
 // 2~4 人用標準地圖，5~6 人用大地圖（較多資源與錦囊卡）
 const SETS = {
@@ -116,6 +116,7 @@ export function createGame(seats, opts = {}) {
   options.specialBuild = !!options.specialBuild;
   options.shuffleSeats = !!options.shuffleSeats;
   options.factions = !!options.factions;
+  options.events = !!options.events;
   // 玩家順序（= 回合順序、顏色）；seat 記錄他在大廳的座位，讓房主對應連線
   const seatOrder = [...Array(n).keys()];
   if (options.shuffleSeats) shuffle(seatOrder);
@@ -156,6 +157,8 @@ export function createGame(seats, opts = {}) {
     winner: null,
     log: [],
     seq: 0,
+    eventDeck: shuffle(EVENTS.map((e) => e.id)),
+    lastEvent: null,
   };
   log(s, `${options.shuffleSeats ? '🎲 隨機決定順序' : '依座位順序'}：${s.players.map((p) => p.name).join(' → ')}`);
   if (options.factions) log(s, `陣營：${s.players.map((p, i) => `${p.name}「${FACTIONS[i].title}」`).join('、')}`);
@@ -411,6 +414,101 @@ function nextTurn(s) {
   log(s, `—— 輪到 ${nm(s, s.current)} ——`);
 }
 
+// ---------------------------------------------------------------- 時事新聞
+// 取材自 2022 台北市長選舉期間廣泛報導的議題；只用議題，不涉及任何真實人物。
+// 「全體獲得資源」的事件五種資源各一張，機率平均。
+export const EVENTS = [
+  { id: 'debate', title: '電視辯論會', desc: '每位候選人獲得 1 張📄文宣' },
+  { id: 'billboard', title: '看板大戰', desc: '每位候選人獲得 1 張🪧看板' },
+  { id: 'market', title: '菜市場掃街', desc: '每位候選人獲得 1 張🙋志工' },
+  { id: 'rally', title: '造勢晚會', desc: '每位候選人獲得 1 張🍱便當' },
+  { id: 'donation', title: '小額募款熱潮', desc: '每位候選人獲得 1 張💰資金' },
+  { id: 'policy', title: '政見發表會', desc: '每位候選人獲得 1 張自己目前最少的資源' },
+  { id: 'tactical', title: '棄保效應', desc: '得票最高者交 1 張（自己最多的資源）給得票最低者' },
+  { id: 'viral', title: '網路聲量爆紅', desc: '得票最低者獲得自己最少的兩種資源各 1 張' },
+  { id: 'ghost', title: '幽靈人口查辦', desc: '資源超過 7 張的候選人棄掉 2 張（從最多的資源開始）' },
+  { id: 'clarify', title: '澄清記者會', desc: '黑函回到艱困選區' },
+];
+
+const GAIN_EVENTS = { debate: 'wood', billboard: 'brick', market: 'sheep', rally: 'wheat', donation: 'ore' };
+
+// 手上最多／最少的資源（平手時依資源順序）
+const mostRes = (h) => RES.reduce((a, r) => (h[r] > h[a] ? r : a), RES[0]);
+const leastRes = (h, except = []) => RES.filter((r) => !except.includes(r)).reduce((a, r) => (h[r] < h[a] ? r : a));
+
+// 依公開得票（不含隱藏的民調領先卡）找最高／最低；平手時手牌較少者算最低
+function standings(s) {
+  const vps = s.players.map((_, i) => victoryPoints(s, i, false));
+  const max = Math.max(...vps);
+  const min = Math.min(...vps);
+  const low = s.players.map((_, i) => i).filter((i) => vps[i] === min)
+    .sort((a, b) => handTotal(s.players[a].resources) - handTotal(s.players[b].resources) || a - b)[0];
+  const top = s.players.map((_, i) => i).filter((i) => vps[i] === max);
+  return { max, min, top, low };
+}
+
+// 每人各拿 1 張自己挑的資源（公庫沒有了就拿不到）
+function giveEach(s, pickRes) {
+  s.players.forEach((p, pid) => {
+    const r = pickRes(p);
+    if (s.bank[r] > 0) give(s, pid, r, 1);
+  });
+}
+
+export function applyEvent(s, id) {
+  const ev = EVENTS.find((e) => e.id === id);
+  if (!ev) return;
+  s.lastEvent = { id, n: s.seq, turn: s.turn };
+  log(s, `📰 時事新聞「${ev.title}」：${ev.desc}`);
+  if (GAIN_EVENTS[id]) {
+    const r = GAIN_EVENTS[id];
+    if (s.bank[r] < s.players.length) log(s, `公庫的${RES_NAME[r]}不足，本次無人獲得`);
+    else s.players.forEach((_, pid) => give(s, pid, r, 1));
+    return;
+  }
+  if (id === 'policy') {
+    giveEach(s, (p) => leastRes(p.resources));
+    return;
+  }
+  const { max, min, top, low } = standings(s);
+  if (id === 'tactical') {
+    if (max === min) { log(s, '得票不相上下，沒有棄保效應'); return; }
+    const from = top.find((i) => handTotal(s.players[i].resources) > 0);
+    if (from == null) return;
+    const r = mostRes(s.players[from].resources);
+    s.players[from].resources[r]--;
+    s.players[low].resources[r]++;
+    log(s, `${nm(s, from)} 交給 ${nm(s, low)} ${RES_ICON[r]}×1`);
+  } else if (id === 'viral') {
+    const h = s.players[low].resources;
+    const r1 = leastRes(h);
+    const r2 = leastRes(h, [r1]);
+    const got = [r1, r2].filter((r) => s.bank[r] > 0);
+    got.forEach((r) => give(s, low, r, 1));
+    if (got.length) log(s, `${nm(s, low)} 獲得 ${got.map((r) => RES_ICON[r]).join(' ')}`);
+  } else if (id === 'ghost') {
+    s.players.forEach((p, pid) => {
+      if (handTotal(p.resources) <= 7) return;
+      const lost = [];
+      for (let k = 0; k < 2; k++) {
+        const r = mostRes(p.resources);
+        p.resources[r]--;
+        s.bank[r]++;
+        lost.push(RES_ICON[r]);
+      }
+      log(s, `${nm(s, pid)} 被查辦，棄掉 ${lost.join(' ')}`);
+    });
+  } else if (id === 'clarify') {
+    const desert = s.board.hexes.findIndex((h) => h.resource === 'desert');
+    if (desert >= 0) s.board.robber = desert;
+  }
+}
+
+function drawEvent(s) {
+  if (!s.eventDeck?.length) s.eventDeck = shuffle(EVENTS.map((e) => e.id));
+  applyEvent(s, s.eventDeck.pop());
+}
+
 // ---------------------------------------------------------------- 動作
 
 export function applyAction(s, pid, a) {
@@ -555,6 +653,8 @@ export function applyAction(s, pid, a) {
         const gains = produce(s, sum);
         smallDonation(s, pid, handTotal(gains[pid]) > 0);
         foreignFunding(s, pid);
+        // 擲出對子：翻一張時事新聞（對子的總和一定是偶數，不會是 7）
+        if (d1 === d2 && (s.options?.events ?? true)) drawEvent(s);
       }
       break;
     }
@@ -772,6 +872,7 @@ export function viewFor(s, viewer) {
   const v = JSON.parse(JSON.stringify(s));
   v.deckCount = s.deck.length;
   v.deck = null;
+  v.eventDeck = null;
   v.players.forEach((p, i) => {
     p.handCount = handTotal(p.resources);
     p.devCount = p.dev.length;

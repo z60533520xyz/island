@@ -3,7 +3,7 @@ import {
   RES, RES_NAME, RES_ICON, DEV_NAME, DEV_DESC, COST, WIN_VP,
   canAfford, emptyHand, handTotal, victoryPoints, tradeRatios, playableDev, robberNearOwn,
   validRoadEdges, validSettlementVertices, validCityVertices, geo,
-  FACTIONS, factionOf, costFor, discardableCount,
+  FACTIONS, factionOf, costFor, discardableCount, EVENTS,
 } from './engine.js';
 
 const S = 100; // 1 單位 = 100 SVG 像素
@@ -158,6 +158,7 @@ function boardSVG(s, t) {
 function onBoardClick(ev) {
   const s = app.view;
   if (!s) return;
+  if (app.eventSeen === undefined) app.eventSeen = s.lastEvent?.n ?? null;
   const t = targets();
   const vEl = ev.target.closest('[data-vertex]');
   const eEl = ev.target.closest('[data-edge]');
@@ -230,6 +231,7 @@ function renderTopbar(s) {
     <div class="room">房間 <b>${esc(app.code)}</b> <button class="link" data-act="copyInvite">複製邀請連結</button></div>
     <div class="turninfo">${turnInfo} · 先拿到 ${WIN_VP} 票當選</div>
     <div class="dicebox">${dice}</div>
+    ${s.lastEvent ? `<div class="lastnews" title="${esc(EVENTS.find((e) => e.id === s.lastEvent.id)?.desc || '')}">📰 ${EVENTS.find((e) => e.id === s.lastEvent.id)?.title || ''}</div>` : ''}
     <div class="bankinfo" title="公庫剩餘資源 / 錦囊卡">${RES.map((r) => `<span>${RES_ICON[r]}${s.bank[r]}</span>`).join('')}<span>📜${s.deckCount}</span></div>`;
 }
 
@@ -447,6 +449,14 @@ function modalContent(s) {
     return { key: `steal${s.pending.left || ''}`, html: `<h2>🕵️ 挖角</h2><p>選擇對象，點一種資源挖走 1 張：</p>${extra}${rows}` };
   }
 
+  if (s.lastEvent && s.lastEvent.n !== app.eventSeen) {
+    const ev = EVENTS.find((e) => e.id === s.lastEvent.id);
+    if (ev) {
+      return { key: `event${s.lastEvent.n}`, closable: true, html: `<div class="news"><div class="news-head">📰 時事新聞</div><h2>${ev.title}</h2><p>${ev.desc}</p></div>
+        <div class="btnrow"><button class="primary" data-act="closeModal">知道了</button></div>` };
+    }
+  }
+
   const m = app.modal;
   if (!m) return null;
   if (m === 'yop') {
@@ -508,6 +518,7 @@ export function openModal(kind) {
 
 export function closeModal() {
   if (app.view?.phase === 'ended') app.endDismissed = true;
+  if (app.view?.lastEvent) app.eventSeen = app.view.lastEvent.n;
   app.modal = null;
   app.modalData = {};
   render();

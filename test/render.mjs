@@ -1,5 +1,5 @@
 // 以極簡 DOM 替身執行所有渲染路徑，確認各種遊戲狀態下畫面程式不會出錯。執行：node test/render.mjs
-import { createGame, applyAction, viewFor, validSettlementVertices, validRoadEdges, RES } from '../js/engine.js';
+import { createGame, applyAction, applyEvent, viewFor, validSettlementVertices, validRoadEdges, RES } from '../js/engine.js';
 
 const els = {};
 const el = () => ({ innerHTML: '', hidden: false, dataset: {}, scrollTop: 0, scrollHeight: 0, clientHeight: 0,
@@ -43,6 +43,8 @@ for (const n of [3, 6]) {
   renderAll();
   applyAction(s, 0, { type: 'roll' });
   renderAll();
+  for (const id of ['debate', 'tactical', 'clarify']) { applyEvent(s, id); app.eventSeen = -1; renderAll(); }
+  if (!els['#modal'].innerHTML.includes('時事新聞')) throw new Error('新聞卡沒有顯示');
   s.pending = { type: 'discard', need: { 1: 7 } }; renderAll();
   s.pending = { type: 'robber' }; renderAll();
   s.pending = { type: 'steal', candidates: [1, 2] }; renderAll();

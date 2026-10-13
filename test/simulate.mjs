@@ -5,7 +5,7 @@ import { GEO, geoFor } from '../js/geometry.js';
 import {
   RES, COST, applyAction, createGame, canAfford, handTotal, tradeRatios, viewFor, victoryPoints,
   validRoadEdges, validSettlementVertices, validCityVertices, playableDev, longestRoadFor,
-  geo, bankSize, robberNearOwn, costFor, tradeRatios as ratiosOf, discardableCount, FACTIONS,
+  geo, bankSize, robberNearOwn, EVENTS, applyEvent, costFor, tradeRatios as ratiosOf, discardableCount, FACTIONS,
 } from '../js/engine.js';
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -395,6 +395,76 @@ assert.equal(GEO.coastal.length, 30);
   const v = geo(s).vertices.find((x) => x.edges.length === 3);
   v.edges.forEach((e) => { s.roads[e] = 1; });
   assert.ok(!validSettlementVertices(s, 0).includes(v.id));
+}
+
+// ---- 時事新聞事件
+{
+  const mk = (opts = {}) => {
+    const s = createGame([{ name: 'A' }, { name: 'B' }, { name: 'C' }], { shuffleSeats: false, factions: false, ...opts });
+    s.phase = 'play'; s.turn = 1;
+    return s;
+  };
+  const giveRes = (s, pid, r, n) => { s.players[pid].resources[r] += n; s.bank[r] -= n; };
+  const forceDice = (a, b) => { const q = [(a - 1) / 6 + 0.01, (b - 1) / 6 + 0.01]; const real = Math.random; Math.random = () => (q.length ? q.shift() : real()); return () => { Math.random = real; }; };
+
+  // 五種資源的「全體獲得」事件各一張
+  const gainCount = {};
+  for (const e of EVENTS) {
+    const m = e.desc.match(/每位候選人獲得 1 張(\p{Extended_Pictographic})/u);
+    if (m) gainCount[m[1]] = (gainCount[m[1]] || 0) + 1;
+  }
+  assert.equal(Object.keys(gainCount).length, 5);
+  assert.ok(Object.values(gainCount).every((n) => n === 1), '資源事件平均分布');
+
+  // 對子觸發、非對子不觸發、關閉選項不觸發
+  let s = mk();
+  let restore = forceDice(3, 3);
+  applyAction(s, 0, { type: 'roll' });
+  restore();
+  assert.ok(s.lastEvent, '擲出對子翻新聞');
+  assert.equal(s.eventDeck.length, EVENTS.length - 1);
+  s = mk(); restore = forceDice(2, 4); applyAction(s, 0, { type: 'roll' }); restore();
+  assert.equal(s.lastEvent, null, '非對子不觸發');
+  s = mk({ events: false }); restore = forceDice(4, 4); applyAction(s, 0, { type: 'roll' }); restore();
+  assert.equal(s.lastEvent, null, '關閉時不觸發');
+  assert.equal(viewFor(mk(), 0).eventDeck, null, '新聞牌庫順序不公開');
+
+  // 全體獲得
+  s = mk(); applyEvent(s, 'donation');
+  assert.ok(s.players.every((p) => p.resources.ore === 1));
+  s = mk(); s.bank.ore = 2; applyEvent(s, 'donation');
+  assert.ok(s.players.every((p) => p.resources.ore === 0), '公庫不夠就都不發');
+  // 政見發表會：各拿自己最少的
+  s = mk(); giveRes(s, 0, 'wood', 1); giveRes(s, 0, 'brick', 1); giveRes(s, 0, 'sheep', 1); giveRes(s, 0, 'wheat', 1);
+  applyEvent(s, 'policy');
+  assert.equal(s.players[0].resources.ore, 1);
+  // 棄保效應：最高給最低
+  s = mk(); s.buildings[0] = { owner: 1, type: 'city' }; giveRes(s, 1, 'wheat', 3); giveRes(s, 2, 'wood', 1);
+  applyEvent(s, 'tactical');
+  assert.equal(s.players[1].resources.wheat, 2);
+  assert.equal(s.players[0].resources.wheat, 1, '平手時手牌少的算最低');
+  s = mk(); giveRes(s, 0, 'wood', 2); applyEvent(s, 'tactical');
+  assert.equal(s.players[0].resources.wood, 2, '得票相同時無效');
+  // 網路聲量爆紅：最低者拿最少的兩種
+  s = mk(); s.buildings[0] = { owner: 0, type: 'settlement' }; s.buildings[10] = { owner: 1, type: 'settlement' };
+  giveRes(s, 2, 'wood', 1); giveRes(s, 2, 'brick', 1); giveRes(s, 2, 'sheep', 1);
+  applyEvent(s, 'viral');
+  assert.equal(s.players[2].resources.wheat, 1);
+  assert.equal(s.players[2].resources.ore, 1);
+  // 幽靈人口查辦
+  s = mk(); giveRes(s, 0, 'wood', 5); giveRes(s, 0, 'ore', 3); giveRes(s, 1, 'wood', 7);
+  applyEvent(s, 'ghost');
+  assert.equal(s.players[0].resources.wood, 3);
+  assert.equal(s.players[1].resources.wood, 7, '7 張以下不受影響');
+  // 澄清記者會
+  s = mk(); s.board.robber = s.board.hexes.findIndex((h) => h.resource !== 'desert');
+  applyEvent(s, 'clarify');
+  assert.equal(s.board.hexes[s.board.robber].resource, 'desert');
+  // 牌庫用完重洗
+  s = mk(); s.eventDeck = [];
+  restore = forceDice(5, 5); applyAction(s, 0, { type: 'roll' }); restore();
+  assert.ok(s.lastEvent);
+  assert.equal(s.eventDeck.length, EVENTS.length - 1);
 }
 
 // ---- 最長道路：被他人村莊截斷
