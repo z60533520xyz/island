@@ -87,7 +87,7 @@ function botStep(s) {
   if (s.deck.length && canAfford(P.resources, COST.dev) && Math.random() < 0.5) return applyAction(s, me, { type: 'buyDev' });
 
   // 玩家交易：提案 → 隨機一人接受 → 成交
-  if (!s.trade && handTotal(P.resources) >= 2 && Math.random() < 0.1) {
+  if (!s.built && !s.trade && handTotal(P.resources) >= 2 && Math.random() < 0.1) {
     const have = RES.filter((r) => P.resources[r] > 0);
     const g = pick(have);
     const w = pick(RES.filter((r) => r !== g));
@@ -105,7 +105,7 @@ function botStep(s) {
 
   const ratios = tradeRatios(s, me);
   const surplus = RES.find((r) => P.resources[r] >= ratios[r] + 1);
-  if (surplus && Math.random() < 0.6) {
+  if (surplus && !s.built && Math.random() < 0.6) {
     const need = pick(RES.filter((r) => r !== surplus && s.bank[r] > 0));
     if (need) return applyAction(s, me, { type: 'bankTrade', give: surplus, get: need });
   }
@@ -257,6 +257,31 @@ assert.equal(GEO.coastal.length, 30);
   assert.equal(s.players[1].resources.ore, 1);
   assert.equal(s.players[0].resources.ore, 1);
   assert.equal(s.pending, null);
+}
+
+// ---- 交易階段 → 建設階段
+{
+  const s = createGame([{ name: 'A' }, { name: 'B' }], { shuffleSeats: false });
+  while (s.phase === 'setup') {
+    const me = s.current;
+    if (s.setup.stage === 'settlement') applyAction(s, me, { type: 'build', kind: 'settlement', at: validSettlementVertices(s, me)[0] });
+    else applyAction(s, me, { type: 'build', kind: 'road', at: validRoadEdges(s, me)[0] });
+  }
+  s.rolled = true;
+  s.players.forEach((p) => RES.forEach((r) => { p.resources[r] += 5; s.bank[r] -= 5; }));
+  applyAction(s, 0, { type: 'bankTrade', give: 'wood', get: 'ore' });
+  applyAction(s, 0, { type: 'tradeOffer', give: { wood: 1 }, want: { ore: 1 } });
+  applyAction(s, 0, { type: 'build', kind: 'road', at: validRoadEdges(s, 0)[0] });
+  assert.equal(s.built, true);
+  assert.equal(s.trade, null, '建造後交易提案自動取消');
+  expectThrow(() => applyAction(s, 0, { type: 'bankTrade', give: 'wood', get: 'ore' }));
+  expectThrow(() => applyAction(s, 0, { type: 'tradeOffer', give: { wood: 1 }, want: { ore: 1 } }));
+  applyAction(s, 0, { type: 'buyDev' }); // 建設階段仍可繼續建造／買卡
+  applyAction(s, 0, { type: 'endTurn' });
+  assert.equal(s.built, false, '新回合重設');
+  s.rolled = true;
+  applyAction(s, 1, { type: 'buyDev' });
+  expectThrow(() => applyAction(s, 1, { type: 'bankTrade', give: 'wood', get: 'ore' }));
 }
 
 // ---- 最長道路：被他人村莊截斷

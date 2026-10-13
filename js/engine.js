@@ -119,6 +119,7 @@ export function createGame(seats, opts = {}) {
     rolled: false,
     dice: null,
     devPlayed: false,
+    built: false, // 本回合是否已進入建設階段（之後不能交易）
     pending: null,
     trade: null,
     longestRoad: null,
@@ -336,11 +337,22 @@ function normHand(h) {
   return out;
 }
 
+// 回合分為「交易 → 建設」兩個階段：一旦建造或購買發展卡，本回合就不能再交易
+function enterBuildPhase(s) {
+  if (s.built) return;
+  s.built = true;
+  if (s.trade) {
+    s.trade = null;
+    log(s, '已進入建設階段，交易提案自動取消');
+  }
+}
+
 function nextTurn(s) {
   s.current = (s.current + 1) % s.players.length;
   s.turn++;
   s.rolled = false;
   s.devPlayed = false;
+  s.built = false;
   s.dice = null;
   log(s, `—— 輪到 ${nm(s, s.current)} ——`);
 }
@@ -364,6 +376,10 @@ export function applyAction(s, pid, a) {
   // 特別建設階段：只有排在佇列最前面的玩家可以建造或購買發展卡
   const special = s.pending?.type === 'specialBuild';
   const isBuilder = special && s.pending.queue[0] === pid;
+  const requireTrade = () => {
+    requireMain();
+    if (s.built) fail('已進入建設階段，本回合不能再交易');
+  };
   const requireBuild = () => {
     if (!special) requireMain();
     else if (!isBuilder) fail('還沒輪到你建設');
@@ -431,6 +447,7 @@ export function applyAction(s, pid, a) {
       if (kind === 'road') {
         if (!validRoadEdges(s, pid).includes(a.at)) fail('這裡不能蓋道路');
         pay(s, pid, COST.road);
+        enterBuildPhase(s);
         s.roads[a.at] = pid;
         P.pieces.road--;
         log(s, `${nm(s, pid)} 蓋了一條道路`);
@@ -438,6 +455,7 @@ export function applyAction(s, pid, a) {
       } else if (kind === 'settlement') {
         if (!validSettlementVertices(s, pid).includes(a.at)) fail('這裡不能蓋村莊');
         pay(s, pid, COST.settlement);
+        enterBuildPhase(s);
         s.buildings[a.at] = { owner: pid, type: 'settlement' };
         P.pieces.settlement--;
         log(s, `${nm(s, pid)} 蓋了一座村莊`);
@@ -445,6 +463,7 @@ export function applyAction(s, pid, a) {
       } else if (kind === 'city') {
         if (!validCityVertices(s, pid).includes(a.at)) fail('這裡不能升級城市');
         pay(s, pid, COST.city);
+        enterBuildPhase(s);
         s.buildings[a.at] = { owner: pid, type: 'city' };
         P.pieces.city--;
         P.pieces.settlement++;
@@ -525,6 +544,7 @@ export function applyAction(s, pid, a) {
       requireBuild();
       if (!s.deck.length) fail('發展卡已售完');
       pay(s, pid, COST.dev);
+      enterBuildPhase(s);
       const type = s.deck.pop();
       P.dev.push({ type, turn: s.turn });
       log(s, `${nm(s, pid)} 購買了一張發展卡`);
@@ -579,7 +599,7 @@ export function applyAction(s, pid, a) {
     }
 
     case 'bankTrade': {
-      requireMain();
+      requireTrade();
       const { give: g, get } = a;
       if (!RES.includes(g) || !RES.includes(get) || g === get) fail('無效的交易');
       const ratio = tradeRatios(s, pid)[g];
@@ -593,7 +613,7 @@ export function applyAction(s, pid, a) {
     }
 
     case 'tradeOffer': {
-      requireMain();
+      requireTrade();
       if (!validHand(a.give) || !validHand(a.want)) fail('無效的交易');
       const g = normHand(a.give);
       const w = normHand(a.want);
@@ -615,7 +635,7 @@ export function applyAction(s, pid, a) {
     }
 
     case 'tradeAccept': {
-      requireMain();
+      requireTrade();
       const t = s.trade;
       if (!t) fail('目前沒有交易提案');
       const other = a.with;

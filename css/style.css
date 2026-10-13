@@ -133,6 +133,8 @@ input:focus { outline: 2px solid #e8b4ad; border-color: var(--accent); }
 .actions .btnrow { justify-content: stretch; }
 .actions .btnrow button { flex: 1; }
 .actions .btngrid button { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.phase { font-weight: 600; margin-bottom: 8px; }
+.phase small { color: var(--muted); font-weight: normal; }
 .cost { font-size: 12px; letter-spacing: 1px; }
 .assist { margin-top: 8px; padding: 8px; background: #fdecea; border-radius: 8px; font-size: 13px; }
 .assist button { margin-top: 6px; width: 100%; }

@@ -212,7 +212,9 @@ function hintText(s, t) {
     if (!(t.edges?.length || t.vertices?.length)) return `目前沒有可以建造${n}的位置`;
     return `點選亮起的位置建造${n}（再按一次按鈕取消）`;
   }
-  return '你的回合：建造、交易或使用發展卡，完成後按「結束回合」';
+  return s.built
+    ? '🔨 建設階段：可以繼續建造或使用發展卡（本回合已不能交易），完成後按「結束回合」'
+    : '🤝 交易階段：先完成交易，再建造（一旦建造或購買發展卡就不能再交易）';
 }
 
 function renderTopbar(s) {
@@ -322,7 +324,8 @@ function renderActions(s) {
   } else {
     const busy = !!s.pending;
     out.push(buildButtons(s, me, busy));
-    out.push(`<div class="btnrow"><button data-act="openTrade" ${busy ? 'disabled' : ''}>🤝 交易</button>
+    out.push(`<div class="phase">${s.built ? '🔨 建設階段 <small>（本回合已不能交易）</small>' : '🤝 交易階段 <small>→ 建造後進入建設階段</small>'}</div>`);
+    out.push(`<div class="btnrow"><button data-act="openTrade" ${busy || s.built ? 'disabled' : ''} title="${s.built ? '已建造，本回合不能再交易' : ''}">🤝 交易</button>
       <button class="primary" data-act="endTurn" ${busy ? 'disabled' : ''}>結束回合 ➜</button></div>`);
   }
   el.innerHTML = out.join('') + hostAssist(s);
