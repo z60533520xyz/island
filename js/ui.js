@@ -375,7 +375,7 @@ function renderTrade(s) {
     const rows = s.players.map((p, i) => {
       if (i === me) return '';
       const r = t.responses[i];
-      const st = r === true
+      const st = factionOf(s, i) === 'red' ? '<span class="muted">統戰陣營，不能交易</span>' : r === true
         ? `<button class="primary small" data-act="tradeAccept" data-with="${i}">與他成交</button>`
         : r === false ? '<span class="muted">拒絕</span>' : '<span class="muted">考慮中…</span>';
       return `<div class="resp">${nameOf(i)} ${st}</div>`;
@@ -384,8 +384,9 @@ function renderTrade(s) {
   } else {
     const r = t.responses[me];
     const P = s.players[me];
-    const can = P.resources && canAfford(P.resources, t.want);
-    const btns = `<button class="primary small" data-act="tradeRespond" data-accept="1" ${can ? '' : 'disabled title="資源不足"'}>接受</button>
+    const isRed = factionOf(s, me) === 'red';
+    const can = !isRed && P.resources && canAfford(P.resources, t.want);
+    const btns = `<button class="primary small" data-act="tradeRespond" data-accept="1" ${can ? '' : `disabled title="${isRed ? '統戰陣營不能與其他玩家交易' : '資源不足'}"`}>接受</button>
       <button class="small" data-act="tradeRespond" data-accept="0">拒絕</button>`;
     const status = r === true ? '<div class="muted">你已表示接受，等待對方確認…</div>' : r === false ? '<div class="muted">你已拒絕</div>' : '';
     el.innerHTML = `${head}<div class="offer-note">對你來說：付出 ${fmt(t.want)}，得到 ${fmt(t.give)}</div>${status}<div class="btnrow">${btns}</div>`;
@@ -465,7 +466,7 @@ function modalContent(s) {
     d.tab ||= 'bank';
     d.pgive ||= emptyHand();
     d.pwant ||= emptyHand();
-    const tabs = `<div class="tabs"><button data-act="tradeTab" data-tab="bank" class="${d.tab === 'bank' ? 'active' : ''}">公庫／人脈</button><button data-act="tradeTab" data-tab="player" class="${d.tab === 'player' ? 'active' : ''}">玩家交易</button></div>`;
+    const tabs = `<div class="tabs"><button data-act="tradeTab" data-tab="bank" class="${d.tab === 'bank' ? 'active' : ''}">公庫／人脈</button><button data-act="tradeTab" data-tab="player" class="${d.tab === 'player' ? 'active' : ''}" ${factionOf(s, me) === 'red' ? 'disabled title="統戰陣營不能與其他玩家交易"' : ''}>玩家交易</button></div>`;
     let body;
     if (d.tab === 'bank') {
       const ratios = tradeRatios(s, me);

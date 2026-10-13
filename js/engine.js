@@ -18,8 +18,8 @@ export const COST = {
   city: { wheat: 2, ore: 3 },
   dev: { sheep: 1, wheat: 1, ore: 1 },
 };
-// 玩家顏色：各政黨主要顏色（藍、綠、青綠、黃、橘、暗紅）
-export const COLORS = ['#1f4fb4', '#1b9431', '#1fb5b5', '#f5b800', '#ff6a13', '#a73f24'];
+// 玩家顏色：各政黨主要顏色（藍、綠、青綠、黃、橘），紅色為虛構的「統戰」陣營
+export const COLORS = ['#1f4fb4', '#1b9431', '#1fb5b5', '#f5b800', '#ff6a13', '#d32f2f'];
 export const MAX_PLAYERS = 6;
 
 // 陣營技能：依玩家顏色（順序）對應
@@ -29,7 +29,7 @@ export const FACTIONS = [
   { id: 'teal', color: '青', title: '小草', skill: '小額捐款：自己擲骰後若沒拿到任何資源，從公庫獲得 1 張🙋志工' },
   { id: 'yellow', color: '黃', title: '社運', skill: '掃街路線只需 📄文宣×1' },
   { id: 'orange', color: '橘', title: '合縱連橫', skill: '所有資源與公庫交易 3:1' },
-  { id: 'red', color: '紅', title: '硬頸', skill: '黑函擋不住你：被黑函壓住的選區照樣產出給你' },
+  { id: 'red', color: '紅', title: '統戰', skill: '境外金援：每次自己擲骰時從公庫獲得 1 張💰資金；但不能與其他玩家交易' },
 ];
 
 export function factionOf(s, pid) {
@@ -187,7 +187,8 @@ export function validSettlementVertices(s, pid) {
   if (P.pieces.settlement <= 0) return [];
   const setup = s.phase === 'setup';
   return geo(s).vertices
-    .filter((v) => vertexFree(s, v.id) && (setup || v.edges.some((e) => s.roads[e] === pid)))
+    // 佈局階段：旁邊必須還有空的邊可以放掃街路線，否則會卡住
+    .filter((v) => vertexFree(s, v.id) && (setup ? v.edges.some((e) => s.roads[e] == null) : v.edges.some((e) => s.roads[e] === pid)))
     .map((v) => v.id);
 }
 
@@ -311,12 +312,10 @@ function produce(s, sum) {
   const demand = {};
   for (const r of RES) demand[r] = {};
   s.board.hexes.forEach((hex, hid) => {
-    if (hex.number !== sum) return;
-    const blocked = hid === s.board.robber;
+    if (hex.number !== sum || hid === s.board.robber) return;
     for (const v of geo(s).hexes[hid].vertices) {
       const b = s.buildings[v];
       if (!b) continue;
-      if (blocked && factionOf(s, b.owner) !== 'red') continue;
       const d = demand[hex.resource];
       d[b.owner] = (d[b.owner] || 0) + (b.type === 'city' ? 2 : 1);
     }
@@ -344,6 +343,13 @@ function produce(s, sum) {
   });
   if (!any) log(s, '沒有人獲得資源');
   return gains;
+}
+
+// 統戰：每次自己擲骰，獲得 1 張境外資金
+function foreignFunding(s, pid) {
+  if (factionOf(s, pid) !== 'red' || s.bank.ore < 1) return;
+  give(s, pid, 'ore', 1);
+  log(s, `🧧 ${nm(s, pid)} 獲得境外金援：💰×1`);
 }
 
 // 小草：自己擲骰後沒拿到資源，獲得 1 張志工
@@ -538,6 +544,7 @@ export function applyAction(s, pid, a) {
           if (t > 7) need[i] = Math.floor(t / 2);
         });
         smallDonation(s, pid, false);
+        foreignFunding(s, pid);
         if (Object.keys(need).length) {
           s.pending = { type: 'discard', need };
           log(s, `手牌超過 7 張的玩家須棄掉一半：${Object.entries(need).map(([i, n]) => `${nm(s, +i)}(${n})`).join('、')}`);
@@ -547,6 +554,7 @@ export function applyAction(s, pid, a) {
       } else {
         const gains = produce(s, sum);
         smallDonation(s, pid, handTotal(gains[pid]) > 0);
+        foreignFunding(s, pid);
       }
       break;
     }
@@ -673,6 +681,7 @@ export function applyAction(s, pid, a) {
 
     case 'tradeOffer': {
       requireTrade();
+      if (factionOf(s, pid) === 'red') fail('統戰陣營不能與其他玩家交易');
       if (!validHand(a.give) || !validHand(a.want)) fail('無效的交易');
       const g = normHand(a.give);
       const w = normHand(a.want);
@@ -687,6 +696,7 @@ export function applyAction(s, pid, a) {
     case 'tradeRespond': {
       if (!s.trade) fail('目前沒有交易提案');
       if (isCurrent) fail('不能回應自己的提案');
+      if (a.accept && factionOf(s, pid) === 'red') fail('統戰陣營不能與其他玩家交易');
       if (a.accept && !canAfford(P.resources, s.trade.want)) fail('你的資源不足以接受');
       s.trade.responses[pid] = !!a.accept;
       log(s, `${nm(s, pid)} ${a.accept ? '願意接受' : '拒絕了'}交易`);
@@ -699,6 +709,7 @@ export function applyAction(s, pid, a) {
       if (!t) fail('目前沒有交易提案');
       const other = a.with;
       if (t.responses[other] !== true) fail('對方尚未接受');
+      if (factionOf(s, other) === 'red') fail('統戰陣營不能與其他玩家交易');
       const O = s.players[other];
       if (!canAfford(P.resources, t.give)) fail('你的資源不足');
       if (!canAfford(O.resources, t.want)) fail('對方資源不足');

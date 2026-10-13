@@ -87,14 +87,14 @@ function botStep(s) {
   if (s.deck.length && canAfford(P.resources, COST.dev) && Math.random() < 0.5) return applyAction(s, me, { type: 'buyDev' });
 
   // 玩家交易：提案 → 隨機一人接受 → 成交
-  if (!s.built && !s.trade && handTotal(P.resources) >= 2 && Math.random() < 0.1) {
+  if (!s.built && !s.trade && P.faction !== 'red' && handTotal(P.resources) >= 2 && Math.random() < 0.1) {
     const have = RES.filter((r) => P.resources[r] > 0);
     const g = pick(have);
     const w = pick(RES.filter((r) => r !== g));
     applyAction(s, me, { type: 'tradeOffer', give: { [g]: 1 }, want: { [w]: 1 } });
     s.players.forEach((p, i) => {
       if (i !== me) {
-        const can = p.resources[w] >= 1;
+        const can = p.resources[w] >= 1 && p.faction !== 'red';
         applyAction(s, i, { type: 'tradeRespond', accept: can && Math.random() < 0.5 });
       }
     });
@@ -336,26 +336,24 @@ assert.equal(GEO.coastal.length, 30);
   assert.deepEqual(costFor(s, 3, 'road'), { wood: 1 });
   assert.deepEqual(costFor(s, 0, 'road'), { wood: 1, brick: 1 });
 
-  // 紅 硬頸：黑函壓住也產出；其他人不產出
-  s = mk();
-  const hid = s.board.hexes.findIndex((h) => h.number && h.number !== 7);
-  const [va, , vc] = geo(s).hexes[hid].vertices;
-  s.buildings[va] = { owner: 5, type: 'settlement' };
-  s.buildings[vc] = { owner: 1, type: 'settlement' };
-  s.board.robber = hid;
-  s.rolled = false;
   const realRandom = Math.random;
-  const n = s.board.hexes[hid].number;
-  const d1 = Math.max(1, n - 6);
-  const seq = [(d1 - 1) / 6 + 0.01, (n - d1 - 1) / 6 + 0.01];
-  Math.random = () => seq.shift() ?? realRandom();
-  s.current = 0;
-  applyAction(s, 0, { type: 'roll' });
+  // 紅 統戰：每次擲骰得 1 資金；不能與玩家交易
+  s = mk();
+  s.current = 5; s.rolled = false;
+  Math.random = (() => { const q = [0.01, 0.01]; return () => q.shift() ?? realRandom(); })();
+  applyAction(s, 5, { type: 'roll' });
   Math.random = realRandom;
-  assert.equal(s.dice[0] + s.dice[1], n);
-  const res = s.board.hexes[hid].resource;
-  assert.ok(s.players[5].resources[res] >= 1, '硬頸照樣產出');
-  assert.equal(s.players[1].resources[res], 0, '其他人被黑函擋住');
+  assert.equal(s.players[5].resources.ore, 1, '境外金援');
+  giveRes(s, 5, 'wood', 2);
+  expectThrow(() => applyAction(s, 5, { type: 'tradeOffer', give: { wood: 1 }, want: { ore: 1 } }));
+  s.current = 0;
+  giveRes(s, 0, 'wood', 1);
+  applyAction(s, 0, { type: 'tradeOffer', give: { wood: 1 }, want: { ore: 1 } });
+  expectThrow(() => applyAction(s, 5, { type: 'tradeRespond', accept: true }));
+  applyAction(s, 5, { type: 'tradeRespond', accept: false });
+  s.trade.responses[5] = true; // 即使被竄改也無法成交
+  expectThrow(() => applyAction(s, 0, { type: 'tradeAccept', with: 5 }));
+  applyAction(s, 0, { type: 'tradeCancel' });
 
   // 青 小草：擲骰沒拿到資源 → 志工 +1
   s = mk();
@@ -381,6 +379,14 @@ assert.equal(GEO.coastal.length, 30);
   s.pending = { type: 'steal', candidates: [3] };
   applyAction(s, 0, { type: 'steal', target: 3, resource: 'wheat' });
   assert.equal(s.pending, null, '非青鳥只挖一張');
+}
+
+// ---- 佈局：周圍的邊都被佔滿的路口不能設立服務處（否則放不了掃街路線而卡住）
+{
+  const s = createGame([{ name: 'A' }, { name: 'B' }], { shuffleSeats: false });
+  const v = geo(s).vertices.find((x) => x.edges.length === 3);
+  v.edges.forEach((e) => { s.roads[e] = 1; });
+  assert.ok(!validSettlementVertices(s, 0).includes(v.id));
 }
 
 // ---- 最長道路：被他人村莊截斷
