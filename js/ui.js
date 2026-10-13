@@ -228,7 +228,7 @@ function renderTopbar(s) {
   const dice = s.dice ? `<span class="dice" title="${s.dice[0] + s.dice[1]}">${DICE[s.dice[0]]}${DICE[s.dice[1]]}</span><b class="dice-sum">${s.dice[0] + s.dice[1]}</b>` : '';
   $('#topbar').innerHTML = `
     <div class="brand">🗳️ 大選戰</div>
-    <div class="room">房間 <b>${esc(app.code)}</b> <button class="link" data-act="copyInvite">複製邀請連結</button></div>
+    <div class="room">房間 <b>${esc(app.code)}</b></div>
     <div class="turninfo">${turnInfo} · 先拿到 ${WIN_VP} 票當選</div>
     <div class="dicebox">${dice}</div>
     ${s.lastEvent ? `<div class="lastnews" title="${esc(EVENTS.find((e) => e.id === s.lastEvent.id)?.desc || '')}">📰 ${EVENTS.find((e) => e.id === s.lastEvent.id)?.title || ''}</div>` : ''}
