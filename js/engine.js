@@ -58,7 +58,7 @@ function rand(n) {
 
 // ---------------------------------------------------------------- 建立遊戲
 
-export const DEFAULT_OPTIONS = { setupRoads: 1, specialBuild: true };
+export const DEFAULT_OPTIONS = { setupRoads: 1, specialBuild: true, shuffleSeats: true };
 
 // 2~4 人用基本版，5~6 人用擴充版（較大地圖、較多資源與發展卡）
 const SETS = {
@@ -87,6 +87,10 @@ export function createGame(seats, opts = {}) {
   const options = { ...DEFAULT_OPTIONS, ...opts };
   if (![1, 2].includes(options.setupRoads)) fail('起始道路數只能是 1 或 2');
   options.specialBuild = !!options.specialBuild;
+  options.shuffleSeats = !!options.shuffleSeats;
+  // 玩家順序（= 回合順序、顏色）；seat 記錄他在大廳的座位，讓房主對應連線
+  const seatOrder = [...Array(n).keys()];
+  if (options.shuffleSeats) shuffle(seatOrder);
   const layout = layoutFor(n);
   const set = SETS[layout];
   const deck = shuffle(Object.entries(set.deck).flatMap(([t, k]) => Array(k).fill(t)));
@@ -96,8 +100,9 @@ export function createGame(seats, opts = {}) {
     board: generateBoard(layout),
     buildings: {},
     roads: {},
-    players: seats.map((seat, i) => ({
-      name: seat.name,
+    players: seatOrder.map((seatIdx, i) => ({
+      name: seats[seatIdx].name,
+      seat: seatIdx,
       color: COLORS[i],
       resources: emptyHand(),
       dev: [],
@@ -122,6 +127,7 @@ export function createGame(seats, opts = {}) {
     log: [],
     seq: 0,
   };
+  log(s, `${options.shuffleSeats ? '🎲 隨機決定順序' : '依座位順序'}：${s.players.map((p) => p.name).join(' → ')}`);
   log(s, `遊戲開始！${layout === 'large' ? '5~6 人擴充地圖。' : ''}每輪依序放置 1 座村莊 + ${options.setupRoads} 條道路，共兩輪（第二輪順序相反）。`);
   return s;
 }

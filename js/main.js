@@ -87,6 +87,9 @@ function renderLobby() {
   const sel = $('#opt-setup-roads');
   sel.value = String(opts.setupRoads);
   sel.disabled = !host;
+  const ss = $('#opt-shuffle-seats');
+  ss.checked = !!opts.shuffleSeats;
+  ss.disabled = !host;
   const sb = $('#opt-special-build');
   sb.checked = !!opts.specialBuild;
   sb.disabled = !host;
@@ -164,6 +167,16 @@ function openHostNet(resume, attempt) {
   app.net.start();
 }
 
+// 大廳座位（房主固定是 0）與遊戲中玩家順序的對應
+function pidOfSeat(si) {
+  if (!app.game) return si;
+  return app.game.players.findIndex((p, pi) => (p.seat ?? pi) === si);
+}
+
+function seatOfPid(pi) {
+  return app.game.players[pi].seat ?? pi;
+}
+
 function seatOf(conn) {
   return app.seats.findIndex((s) => s.conn === conn);
 }
@@ -201,7 +214,7 @@ function hostOnData(conn, msg) {
   if (msg.t === 'action') {
     if (!app.game) return;
     try {
-      applyAction(app.game, idx, msg.action);
+      applyAction(app.game, pidOfSeat(idx), msg.action);
     } catch (err) {
       app.net.send(conn, { t: 'error', text: err instanceof GameError ? err.message : '發生錯誤' });
       if (!(err instanceof GameError)) console.error(err);
@@ -233,7 +246,7 @@ function hostChat(idx, text) {
     t: 'chat',
     n: app.game ? app.game.seq - 0.5 : -1,
     from: idx == null ? '系統' : app.seats[idx].name,
-    color: idx == null ? '#888' : COLORS[idx],
+    color: idx == null ? '#888' : app.game ? app.game.players[pidOfSeat(idx)].color : COLORS[idx],
     text,
   };
   app.seats.forEach((seat, i) => i > 0 && app.net.send(seat.conn, msg));
@@ -241,11 +254,12 @@ function hostChat(idx, text) {
 }
 
 function hostBroadcast() {
-  app.online = app.seats.map((s) => s.online);
-  app.me = 0;
   if (app.game) {
+    app.online = app.game.players.map((_, pi) => app.seats[seatOfPid(pi)].online);
+    app.me = pidOfSeat(0);
     app.seats.forEach((seat, i) => {
-      if (i > 0) app.net.send(seat.conn, { t: 'state', view: viewFor(app.game, i), you: i, online: app.online, code: app.code });
+      const pid = pidOfSeat(i);
+      if (i > 0) app.net.send(seat.conn, { t: 'state', view: viewFor(app.game, pid), you: pid, online: app.online, code: app.code });
     });
     try {
       localStorage.setItem(HOST_SAVE, JSON.stringify({
@@ -255,9 +269,11 @@ function hostBroadcast() {
         savedAt: Date.now(),
       }));
     } catch { /* 儲存失敗不影響遊戲 */ }
-    app.view = viewFor(app.game, 0);
+    app.view = viewFor(app.game, app.me);
     onView();
   } else {
+    app.online = app.seats.map((s) => s.online);
+    app.me = 0;
     app.lobby = { players: app.seats.map((s) => ({ name: s.name })), options: app.options };
     app.seats.forEach((seat, i) => {
       if (i > 0) app.net.send(seat.conn, { t: 'lobby', lobby: app.lobby, you: i, code: app.code });
@@ -277,7 +293,7 @@ function hostStartGame() {
 function autoplay() {
   const s = app.game;
   if (!s) return;
-  const off = (i) => i !== 0 && !app.seats[i].online;
+  const off = (pi) => seatOfPid(pi) !== 0 && !app.seats[seatOfPid(pi)].online;
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   try {
     for (let step = 0; step < 40 && s.phase !== 'ended'; step++) {
@@ -406,7 +422,7 @@ function dispatch(action) {
   if (app.role === 'host') {
     if (!app.game) return;
     try {
-      applyAction(app.game, 0, action);
+      applyAction(app.game, pidOfSeat(0), action);
     } catch (err) {
       toast(err instanceof GameError ? err.message : '發生錯誤');
       if (!(err instanceof GameError)) console.error(err);
@@ -489,6 +505,11 @@ function initHome() {
   $('#opt-setup-roads').addEventListener('change', (e) => {
     if (app.role !== 'host' || app.game) return;
     app.options.setupRoads = Number(e.target.value);
+    hostBroadcast();
+  });
+  $('#opt-shuffle-seats').addEventListener('change', (e) => {
+    if (app.role !== 'host' || app.game) return;
+    app.options.shuffleSeats = e.target.checked;
     hostBroadcast();
   });
   $('#opt-special-build').addEventListener('change', (e) => {

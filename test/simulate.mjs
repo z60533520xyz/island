@@ -213,6 +213,22 @@ assert.equal(GEO.coastal.length, 30);
   assert.equal(t2.current, 1);
 }
 
+// ---- 隨機座位順序
+{
+  const names = ['A', 'B', 'C', 'D'];
+  const seen = new Set();
+  for (let k = 0; k < 50; k++) {
+    const s = createGame(names.map((name) => ({ name })));
+    const seats = s.players.map((p) => p.seat);
+    assert.deepEqual([...seats].sort(), [0, 1, 2, 3], '座位必須是排列');
+    s.players.forEach((p) => assert.equal(p.name, names[p.seat], '名字要跟著座位'));
+    seen.add(seats.join());
+  }
+  assert.ok(seen.size > 1, '預設應會打亂順序');
+  const fixed = createGame(names.map((name) => ({ name })), { shuffleSeats: false });
+  assert.deepEqual(fixed.players.map((p) => p.seat), [0, 1, 2, 3]);
+}
+
 // ---- 最長道路：被他人村莊截斷
 {
   const s = createGame([{ name: 'A' }, { name: 'B' }]);
