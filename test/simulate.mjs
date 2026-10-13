@@ -5,7 +5,7 @@ import { GEO, geoFor } from '../js/geometry.js';
 import {
   RES, COST, applyAction, createGame, canAfford, handTotal, tradeRatios, viewFor, victoryPoints,
   validRoadEdges, validSettlementVertices, validCityVertices, playableDev, longestRoadFor,
-  geo, bankSize,
+  geo, bankSize, robberNearOwn,
 } from '../js/engine.js';
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -70,7 +70,7 @@ function botStep(s) {
 
   const devs = s.devPlayed ? [] : playableDev(s, me);
   if (!s.rolled) {
-    if (devs.includes('knight') && Math.random() < 0.5) return applyAction(s, me, { type: 'playDev', card: 'knight' });
+    if (devs.includes('knight') && robberNearOwn(s, me) && Math.random() < 0.5) return applyAction(s, me, { type: 'playDev', card: 'knight' });
     return applyAction(s, me, { type: 'roll' });
   }
   if (devs.length && Math.random() < 0.5) {
@@ -282,6 +282,24 @@ assert.equal(GEO.coastal.length, 30);
   s.rolled = true;
   applyAction(s, 1, { type: 'buyDev' });
   expectThrow(() => applyAction(s, 1, { type: 'bankTrade', give: 'wood', get: 'ore' }));
+}
+
+// ---- 騎士卡：強盜須在自己的建築旁
+{
+  const s = createGame([{ name: 'A' }, { name: 'B' }], { shuffleSeats: false });
+  s.phase = 'play'; s.turn = 2;
+  s.players[0].dev.push({ type: 'knight', turn: 1 });
+  const near = geo(s).hexes[4];
+  s.buildings[near.vertices[0]] = { owner: 0, type: 'city' };
+  s.board.robber = geo(s).hexes.find((h) => h.vertices.every((v) => !s.buildings[v])).id;
+  assert.equal(robberNearOwn(s, 0), false);
+  expectThrow(() => applyAction(s, 0, { type: 'playDev', card: 'knight' }));
+  assert.equal(s.players[0].dev.length, 1, '失敗時不消耗卡片');
+  s.board.robber = 4;
+  assert.equal(robberNearOwn(s, 0), true, '城市也算');
+  applyAction(s, 0, { type: 'playDev', card: 'knight' });
+  assert.equal(s.pending.type, 'robber');
+  assert.equal(s.players[0].knights, 1);
 }
 
 // ---- 最長道路：被他人村莊截斷

@@ -6,7 +6,7 @@ export const RES_NAME = { wood: '木材', brick: '磚塊', sheep: '羊毛', whea
 export const RES_ICON = { wood: '🌲', brick: '🧱', sheep: '🐑', wheat: '🌾', ore: '⛰️', desert: '🏜️' };
 export const DEV_NAME = { knight: '騎士', vp: '勝利分數', roadBuilding: '道路建設', yearOfPlenty: '豐收之年', monopoly: '壟斷' };
 export const DEV_DESC = {
-  knight: '移動強盜並搶奪一張資源卡',
+  knight: '移動強盜並搶奪一張資源卡（強盜須在你的村莊或城市旁邊才能使用）',
   vp: '+1 勝利分數（自動計入，不需打出）',
   roadBuilding: '免費建造 2 條道路',
   yearOfPlenty: '從銀行拿取任意 2 張資源',
@@ -231,6 +231,11 @@ export function longestRoadFor(s, pid) {
     }
   }
   return best;
+}
+
+// 家規：強盜必須在自己的村莊或城市旁邊，才能使用騎士卡
+export function robberNearOwn(s, pid) {
+  return geo(s).hexes[s.board.robber].vertices.some((v) => s.buildings[v]?.owner === pid);
 }
 
 export function playableDev(s, pid) {
@@ -556,6 +561,7 @@ export function applyAction(s, pid, a) {
       if (s.phase !== 'play') fail('現在不能使用發展卡');
       if (s.pending) fail('請先完成目前的步驟');
       if (s.devPlayed) fail('每回合只能使用一張發展卡');
+      if (a.card === 'knight' && !robberNearOwn(s, pid)) fail('強盜必須在你的村莊或城市旁邊才能使用騎士');
       const idx = P.dev.findIndex((c) => c.type === a.card && c.type !== 'vp' && c.turn < s.turn);
       if (idx < 0) fail('你沒有可以使用的這種卡（本回合購買的卡不能使用）');
       if (a.card === 'yearOfPlenty') {

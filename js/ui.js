@@ -1,7 +1,7 @@
 // 畫面渲染與互動。所有遊戲動作都透過 app.dispatch(action) 送出，由房主的規則引擎裁決。
 import {
   RES, RES_NAME, RES_ICON, DEV_NAME, DEV_DESC, COST, WIN_VP,
-  canAfford, emptyHand, handTotal, victoryPoints, tradeRatios, playableDev,
+  canAfford, emptyHand, handTotal, victoryPoints, tradeRatios, playableDev, robberNearOwn,
   validRoadEdges, validSettlementVertices, validCityVertices, geo,
 } from './engine.js';
 
@@ -270,12 +270,13 @@ function renderHand(s) {
   for (const c of P.dev) groups[c.type] = (groups[c.type] || 0) + 1;
   const devHtml = Object.keys(groups).length
     ? Object.entries(groups).map(([type, n]) => {
-      const can = mine && type !== 'vp' && !s.devPlayed && !s.pending && playable.includes(type);
       const fresh = type !== 'vp' && !playable.includes(type);
+      const blocked = type === 'knight' && !fresh && !robberNearOwn(s, app.me);
+      const can = mine && type !== 'vp' && !s.devPlayed && !s.pending && playable.includes(type) && !blocked;
       return `<div class="dcard" title="${DEV_DESC[type]}">
         <div><b>${DEV_NAME[type]}</b> ×${n}</div>
         <div class="ddesc">${DEV_DESC[type]}</div>
-        ${type === 'vp' ? '' : `<button data-act="playDev" data-card="${type}" ${can ? '' : 'disabled'}>${fresh ? '下回合可用' : '使用'}</button>`}
+        ${type === 'vp' ? '' : `<button data-act="playDev" data-card="${type}" ${can ? '' : 'disabled'}>${fresh ? '下回合可用' : blocked ? '強盜不在旁邊' : '使用'}</button>`}
       </div>`;
     }).join('')
     : '<div class="muted">尚無發展卡</div>';
