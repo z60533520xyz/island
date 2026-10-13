@@ -148,6 +148,8 @@ input:focus { outline: 2px solid #e8b4ad; border-color: var(--accent); }
 .pn { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vp { font-weight: 700; font-size: 16px; }
 .offline { font-size: 11px; background: #888; color: #fff; padding: 1px 6px; border-radius: 99px; }
+.pres { display: flex; gap: 10px; margin-top: 4px; font-size: 14px; font-weight: 600; flex-wrap: wrap; }
+.pres .zero { opacity: .35; font-weight: normal; }
 .pstats { display: flex; gap: 10px; margin-top: 4px; font-size: 13px; color: #5a554d; flex-wrap: wrap; }
 .badges { margin-top: 4px; display: flex; gap: 6px; }
 .badge { font-size: 12px; background: #fdf3d8; border: 1px solid #f0c96a; border-radius: 99px; padding: 0 8px; }

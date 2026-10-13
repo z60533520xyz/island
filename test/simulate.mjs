@@ -134,11 +134,14 @@ assert.equal(GEO.coastal.length, 30);
   // 距離規則
   applyAction(s, 0, { type: 'build', kind: 'road', at: GEO.vertices[0].edges[0] });
   expectThrow(() => applyAction(s, 1, { type: 'build', kind: 'settlement', at: GEO.vertices[0].adj[0] }));
-  // 隱藏資訊
+  // 資源公開、發展卡與牌庫隱藏
+  s.players[0].dev.push({ type: 'vp', turn: 0 });
   const v = viewFor(s, 1);
-  assert.equal(v.players[0].resources, null);
+  assert.ok(v.players[0].resources, '資源卡應公開');
+  assert.equal(v.players[0].dev, null, '他人的發展卡應隱藏');
+  assert.equal(v.players[0].devCount, 1);
   assert.equal(v.deck, null);
-  assert.ok(v.players[1].resources);
+  assert.ok(Array.isArray(viewFor(s, 0).players[0].dev));
 }
 
 // ---- 準備階段每輪 2 條道路（家規選項）
@@ -247,10 +250,6 @@ assert.equal(GEO.coastal.length, 30);
   applyAction(s, 0, { type: 'moveRobber', hex });
   assert.equal(s.pending.type, 'steal', '只有一位可搶也要自己選');
   assert.deepEqual(s.pending.candidates, [1]);
-  // 只有強盜看得到對方手牌
-  assert.equal(viewFor(s, 0).pending.hands[1].ore, 2);
-  assert.equal(viewFor(s, 2).pending.hands, undefined);
-  assert.equal(viewFor(s, 1).pending.hands, undefined);
   expectThrow(() => applyAction(s, 0, { type: 'steal', target: 1, resource: 'wheat' }));
   expectThrow(() => applyAction(s, 0, { type: 'steal', target: 1 }));
   expectThrow(() => applyAction(s, 0, { type: 'steal', target: 2, resource: 'ore' }));

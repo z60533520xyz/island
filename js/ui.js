@@ -242,6 +242,7 @@ function renderPlayers(s) {
         ${online ? '' : '<span class="offline" title="離線中">離線</span>'}
         <span class="vp" title="勝利分數${i === app.me ? '（含隱藏的分數卡）' : ''}">⭐ ${vp}</span>
       </div>
+      <div class="pres">${RES.map((r) => `<span class="${p.resources[r] ? '' : 'zero'}" title="${RES_NAME[r]}">${RES_ICON[r]}${p.resources[r]}</span>`).join('')}</div>
       <div class="pstats">
         <span title="資源卡">🃏 ${p.handCount}</span>
         <span title="發展卡">📜 ${p.devCount}</span>
@@ -413,9 +414,8 @@ function modalContent(s) {
       <div class="steppers">${rows}</div><div class="btnrow"><button class="primary" data-act="confirmDiscard" ${total === need ? '' : 'disabled'}>確定棄牌</button></div>` };
   }
   if (s.pending?.type === 'steal' && s.current === me) {
-    const hands = s.pending.hands || {};
     const rows = s.pending.candidates.map((i) => {
-      const h = hands[i] || emptyHand();
+      const h = s.players[i].resources;
       const picks = RES.map((r) => `<button class="pick" data-act="steal" data-target="${i}" data-res="${r}" ${h[r] > 0 ? '' : 'disabled'} title="${RES_NAME[r]}">${RES_ICON[r]}<small>${h[r]}</small></button>`).join('');
       return `<div class="steal-row"><div>${nameOf(i)} <span class="muted">（${s.players[i].handCount} 張）</span></div><div class="picks">${picks}</div></div>`;
     }).join('');

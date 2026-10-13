@@ -677,7 +677,7 @@ export function applyAction(s, pid, a) {
   s.seq++;
 }
 
-// 依觀看者隱藏其他玩家的手牌與發展卡（遊戲結束後全部公開）
+// 資源卡公開；依觀看者隱藏其他玩家的發展卡（遊戲結束後全部公開）
 export function viewFor(s, viewer) {
   const v = JSON.parse(JSON.stringify(s));
   v.deckCount = s.deck.length;
@@ -685,14 +685,7 @@ export function viewFor(s, viewer) {
   v.players.forEach((p, i) => {
     p.handCount = handTotal(p.resources);
     p.devCount = p.dev.length;
-    if (i !== viewer && s.phase !== 'ended') {
-      p.resources = null;
-      p.dev = null;
-    }
+    if (i !== viewer && s.phase !== 'ended') p.dev = null;
   });
-  // 搶奪時，強盜可以看到可搶對象的手牌
-  if (s.pending?.type === 'steal' && viewer === s.current) {
-    v.pending.hands = Object.fromEntries(s.pending.candidates.map((i) => [i, { ...s.players[i].resources }]));
-  }
   return v;
 }

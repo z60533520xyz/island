@@ -28,7 +28,7 @@ const app = {
   options: { ...DEFAULT_OPTIONS }, // 房主：房間設定
   seats: [], // 房主：[{ name, token, conn, online }]
   game: null, // 房主：完整遊戲狀態
-  view: null, // 自己看到的（隱藏他人手牌）狀態
+  view: null, // 自己看到的狀態（隱藏他人發展卡）
   me: null,
   lobby: null,
   online: [],
