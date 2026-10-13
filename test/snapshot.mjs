@@ -21,6 +21,6 @@ const b = geo(s).bounds;
 const m = 1.3;
 const vb = [b.minX - m, b.minY - m, b.maxX - b.minX + 2 * m, b.maxY - b.minY + 2 * m].map((x) => Math.round(x * 100)).join(' ');
 const css = fs.readFileSync(new URL('../css/style.css', import.meta.url), 'utf8')
-  .split('\n').filter((l) => l.startsWith('#board')).join('\n').replaceAll('#board ', '').replace('var(--sea)', '#3a86c8');
+  .split('\n').filter((l) => l.startsWith('#board')).join('\n').replaceAll('#board ', '').replaceAll('var(--sea)', '#3a86c8');
 fs.writeFileSync(out, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="900"><style>${css}</style>${html}</svg>`);
 console.log(`已輸出 ${out}`);

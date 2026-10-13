@@ -14,8 +14,9 @@ export const LAYOUTS = {
   },
   large: {
     rows: [3, 4, 5, 6, 5, 4, 3],
-    tiles: { wood: 6, brick: 5, sheep: 6, wheat: 6, ore: 5, desert: 2 },
-    numbers: [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12],
+    // 家規：3 塊沙漠（官方為 2 塊），因此少一塊羊毛與一個 12
+    tiles: { wood: 6, brick: 5, sheep: 5, wheat: 6, ore: 5, desert: 3 },
+    numbers: [2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12],
     ports: ['any', 'any', 'any', 'any', 'any', 'wood', 'brick', 'sheep', 'sheep', 'wheat', 'ore'],
   },
 };

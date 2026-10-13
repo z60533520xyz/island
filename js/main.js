@@ -94,7 +94,7 @@ function renderLobby() {
   sb.checked = !!opts.specialBuild;
   sb.disabled = !host;
   $('#lobby-map').textContent = players.length >= 5
-    ? '🗺️ 5~6 人擴充地圖（30 塊地形、11 個港口）'
+    ? '🗺️ 5~6 人擴充地圖（30 塊地形、3 塊沙漠、11 個港口）'
     : '🗺️ 基本地圖（19 塊地形）；5~6 人時自動改用擴充地圖';
   $('#btn-start').hidden = !host;
   $('#btn-start').disabled = players.length < 2;

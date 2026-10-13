@@ -120,7 +120,7 @@ input:focus { outline: 2px solid #e8b4ad; border-color: var(--accent); }
   background: var(--card); border: 1px solid var(--line); text-align: center; max-width: 100%;
 }
 .hint.mine { background: #fdf3d8; border-color: #f0c96a; font-weight: 600; }
-#board { flex: 1; width: 100%; min-height: 0; user-select: none; }
+#board { flex: 1; width: 100%; min-height: 0; user-select: none; background: var(--sea); border-radius: 12px; }
 
 .side {
   border-left: 1px solid var(--line); background: #faf6ec;
@@ -191,15 +191,15 @@ input:focus { outline: 2px solid #e8b4ad; border-color: var(--accent); }
 #board .tile.hot { stroke: #ffe066; stroke-width: 10; filter: drop-shadow(0 0 10px #ffe066); }
 #board .tile-inner { fill: rgba(255, 255, 255, .08); stroke: none; pointer-events: none; }
 #board text { text-anchor: middle; dominant-baseline: central; pointer-events: none; }
-#board .tile-icon { font-size: 28px; }
-#board .tile-icon.big { font-size: 46px; }
+#board .tile-icon { font-size: 54px; }
+#board .tile-icon.big { font-size: 80px; }
 #board .token { fill: #f8efd9; stroke: #b49a64; stroke-width: 2; }
-#board .token-num { font-size: 26px; font-weight: 800; fill: #2d2a26; }
+#board .token-num { font-size: 25px; font-weight: 800; fill: #2d2a26; }
 #board .token-num.red, #board .pip.red { fill: #c0392b; }
 #board .pip { fill: #2d2a26; }
 #board .pier { stroke: #8b5a2b; stroke-width: 6; stroke-linecap: round; }
 #board .port circle { fill: #fffaf0; stroke: #8b5a2b; stroke-width: 3; }
-#board .port-icon { font-size: 22px; }
+#board .port-icon { font-size: 30px; }
 #board .port-ratio { font-size: 15px; font-weight: 700; fill: #5b3a1a; }
 #board .road-outline { stroke: #1d1b18; stroke-width: 17; stroke-linecap: round; }
 #board .road { stroke-width: 11; stroke-linecap: round; }

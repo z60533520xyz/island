@@ -60,7 +60,7 @@ function pips(n) {
 
 function boardSVG(s, t) {
   const out = [];
-  for (const h of geo(s).hexes) out.push(`<polygon points="${hexPoints(h, 1.75)}" class="sea"/>`);
+  out.push('<rect x="-5000" y="-5000" width="10000" height="10000" class="sea"/>'); // 海洋填滿整個棋盤區
 
   // 港口
   for (const port of s.board.ports) {
@@ -79,9 +79,9 @@ function boardSVG(s, t) {
     const label = port.type === 'any' ? '3:1' : '2:1';
     const icon = port.type === 'any' ? '❓' : RES_ICON[port.type];
     const title = port.type === 'any' ? '3:1 港口：任意資源 3 換 1' : `2:1 港口：${RES_NAME[port.type]} 2 換 1`;
-    out.push(`<g class="port"><title>${title}</title><circle cx="${px * S}" cy="${py * S}" r="30"/>
-      <text x="${px * S}" y="${py * S - 4}" class="port-icon">${icon}</text>
-      <text x="${px * S}" y="${py * S + 20}" class="port-ratio">${label}</text></g>`);
+    out.push(`<g class="port"><title>${title}</title><circle cx="${px * S}" cy="${py * S}" r="34"/>
+      <text x="${px * S}" y="${py * S - 7}" class="port-icon">${icon}</text>
+      <text x="${px * S}" y="${py * S + 21}" class="port-ratio">${label}</text></g>`);
   }
 
   // 地塊
@@ -94,13 +94,14 @@ function boardSVG(s, t) {
     const cx = h.x * S;
     const cy = h.y * S;
     if (tile.number) {
-      out.push(`<text x="${cx}" y="${cy - 46}" class="tile-icon">${RES_ICON[tile.resource]}</text>`);
+      out.push(`<text x="${cx}" y="${cy - 34}" class="tile-icon">${RES_ICON[tile.resource]}</text>`);
       const red = tile.number === 6 || tile.number === 8;
-      out.push(`<circle cx="${cx}" cy="${cy}" r="30" class="token"/>`);
-      out.push(`<text x="${cx}" y="${cy + 2}" class="token-num${red ? ' red' : ''}">${tile.number}</text>`);
+      const ty = cy + 32; // 數字牌放在圖示下方
+      out.push(`<circle cx="${cx}" cy="${ty}" r="28" class="token"/>`);
+      out.push(`<text x="${cx}" y="${ty - 3}" class="token-num${red ? ' red' : ''}">${tile.number}</text>`);
       const n = pips(tile.number);
       for (let k = 0; k < n; k++) {
-        out.push(`<circle cx="${cx + (k - (n - 1) / 2) * 7}" cy="${cy + 18}" r="2.6" class="pip${red ? ' red' : ''}"/>`);
+        out.push(`<circle cx="${cx + (k - (n - 1) / 2) * 7}" cy="${ty + 15}" r="2.6" class="pip${red ? ' red' : ''}"/>`);
       }
     } else {
       out.push(`<text x="${cx}" y="${cy}" class="tile-icon big">${RES_ICON.desert}</text>`);
